@@ -76,12 +76,24 @@ IpfsClient.prototype.add = function (data, options) {
     }
 };
 
-IpfsClient.prototype.cat = function (ipfsPath) {
-    try {
-        return this.api.cat(ipfsPath);
+IpfsClient.prototype.cat = function (ipfsPath, callback) {
+    if (callback) {
+        this.api.cat(ipfsPath, function (err, result) {
+            if (err) {
+                handleError('cat', err, true, callback);
+            }
+            else {
+                callback(null, result);
+            }
+        });
     }
-    catch (err) {
-        handleError('cat', err);
+    else {
+        try {
+            return this.api.cat(ipfsPath);
+        }
+        catch (err) {
+            handleError('cat', err);
+        }
     }
 };
 
@@ -236,7 +248,7 @@ IpfsClient.initialize = function () {
 // Definition of module (private) functions
 //
 
-function handleError(methodName, err, logError = false) {
+function handleError(methodName, err, logError = false, callback) {
     let errMsg = util.format('Error calling IPFS API \'%s\' method.', methodName);
 
     if (logError) {
@@ -248,7 +260,12 @@ function handleError(methodName, err, logError = false) {
     const error = new Error(errMsg);
     error._ipfsError = err;
 
-    throw error;
+    if (callback) {
+        callback(error);
+    }
+    else {
+        throw error;
+    }
 }
 
 
