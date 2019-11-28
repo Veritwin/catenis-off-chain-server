@@ -424,8 +424,14 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
             // noinspection DuplicatedCode
             async.eachOf(scannedPaths, (path, idx, cb1) => {
-                const pathParts = path.substring(subtypeRootPath.length).split('/');
+                let pathParts = path.substring(subtypeRootPath.length).split('/');
                 pathParts.shift();
+                pathParts = pathParts.map((part, idx) => {
+                    let val = Number.parseInt(part);
+
+                    // Make sure that month index is converted to zero-base
+                    return idx === 1 ? val - 1 : val;
+                });
 
                 async.parallel([
                     (cb2) => {
