@@ -213,8 +213,13 @@ IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limi
             cid: 1,
             data: 1,
             dataType: 1,
+            savedDate: 1,
             retrievedDate: 1
-        }
+        },
+        sort: [
+            ['retrievedDate', 1],
+            ['savedDate', 1]
+        ]
     };
 
     if (retrievedAfter) {
@@ -247,6 +252,7 @@ IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limi
                 cid: doc.cid,
                 data: Buffer.from(doc.data.buffer),
                 dataType: doc.dataType,
+                savedDate: doc.savedDate,
                 retrievedDate: doc.retrievedDate
             };
         });
@@ -409,6 +415,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
         const scannedPaths = scanRepoPath.call(this, IpfsRepo.repoSubtype.offChainMsgData, repoRoot.cid, lastScannedPath);
 
         if (scannedPaths.length > 0) {
+            const subtypeRootPath = repoRoot.cid + IpfsRepo.repoSubtype.offChainMsgData.subDir;
             const lastScannedOffChainMsgEnvelope = docIpfsRepoScan ? docIpfsRepoScan.lastScannedFiles.offChainMsgData.envelope : null;
             const lastScannedOffChainMsgReceipt = docIpfsRepoScan ? docIpfsRepoScan.lastScannedFiles.offChainMsgData.receipt : null;
             let lastMsgEnvelope;
@@ -416,6 +423,9 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
             // noinspection DuplicatedCode
             scannedPaths.forEach((path, idx) => {
+                const pathParts = path.substring(subtypeRootPath.length).split('/');
+                pathParts.shift();
+
                 // Scan off-chain message envelope files in path
                 lastMsgEnvelope = null;
                 let fileEntries;
@@ -455,6 +465,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                             cid: fileEntry.hash,
                             data: new Uint8Array(msgEnvelopeData),  // NOTE: convert Buffer object into a TypedArray so the data is stored as a binary stream
                             dataType: IpfsRepo.offChainMsgDataType.msgEnvelope.name,
+                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataType.msgEnvelope.filenamePrefix, fileEntry.name),
                             retrievedDate: repoRoot.refDate
                         });
 
@@ -503,6 +514,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                             cid: fileEntry.hash,
                             data: new Uint8Array(msgReceiptData),  // NOTE: convert Buffer object into a TypedArray so the data is stored as a binary stream
                             dataType: IpfsRepo.offChainMsgDataType.msgReceipt.name,
+                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataType.msgReceipt.filenamePrefix, fileEntry.name),
                             retrievedDate: repoRoot.refDate
                         });
 
@@ -521,8 +533,6 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                 lastMsgReceipt: lastMsgReceipt
             });
             if (!lastScannedPath || scannedPaths.length > 1 || lastMsgEnvelope || lastMsgReceipt) {
-                const subtypeRootPath = repoRoot.cid + IpfsRepo.repoSubtype.offChainMsgData.subDir;
-
                 if (!docIpfsRepoScan) {
                     // Insert new IPFS repo scan database doc
                     CtnOCSvr.logger.DEBUG('>>>>>> Insert new IPFS repo scan database doc');
@@ -574,7 +584,8 @@ function scanRepoPath(repoSubtype, rootCid, lastScannedPath) {
     let lastPathLevels = [];
 
     if (lastScannedPath) {
-        lastPathLevels = lastScannedPath.split('/').filter(s => s.length > 0);
+        lastPathLevels = lastScannedPath.split('/');
+        lastPathLevels.shift();
 
         // Add root path to last scanned path
         lastScannedPath = subtypeRootPath + lastScannedPath;
@@ -664,6 +675,10 @@ IpfsRepo.offChainMsgDataType = Object.freeze({
 
 function millisecondsInMinute(mt) {
     return mt.second() * 1000 + mt.millisecond();
+}
+
+function dateFromPath(pathParts, filePrefix, filename) {
+    return moment.utc(pathParts).add(Number.parseInt(filename.substring(filePrefix.length, filename.length - 3)), 'ms').toDate();
 }
 
 

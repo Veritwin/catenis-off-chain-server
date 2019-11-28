@@ -23,6 +23,7 @@ RetrievedOffChainMsgData {
   _id: [object],  // MongoDB internal document ID
   cid: [string],  // IPFS CID of off-chain message data
   data: [binary],  // Off-Chain message data as a binary stream
-  dataType: [string],  // The type of the off-chain message data; either 'msg-envelope' or 'msg-receipt' (from IpfsRepo.offChainMsgDataType)
+  dataType: [string],  // The type of the off-chain message data; either 'msg-envelope' or 'msg-receipt' (from IpfsRepo.offChainMsgDataType),
+  savedDate: [date/time],  // Date and time when off-chain message data has originally been saved
   retrievedDate: [date/time]  // Date and time when off-chain message data has been retrieved
 }

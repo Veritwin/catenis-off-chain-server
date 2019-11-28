@@ -207,6 +207,14 @@ Database.initialize = function() {
                 }
             }, {
                 fields: {
+                    savedDate: 1
+                },
+                opts: {
+                    background: true,
+                    w: 1
+                }
+            }, {
+                fields: {
                     retrievedDate: 1
                 },
                 opts: {
