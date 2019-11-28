@@ -1,0 +1,5 @@
+/.idea/
+/dist/
+/log/
+/src/
+/config/*development*.json5

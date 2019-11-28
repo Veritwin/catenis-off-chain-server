@@ -1,0 +1,19 @@
+// Config file with specific settings for testing on development environment
+{
+  // Parameters pertaining to Logger module
+  logger: {
+    console: {
+      logLevel: "DEBUG" // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+    },
+    email: {
+      active: false,
+      logLevel: "WARN", // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+      toAddresses: "claudiosdc@gmail.com", // Can be set to a comma separated list of e-mail addresses
+      fromAddress: "Catenis Off-Chain Server [Development] <csdecastro@hotmail.com>",
+    }
+  },
+  // Parameters pertaining to Application module
+  application: {
+    isTest: true
+  }
+}

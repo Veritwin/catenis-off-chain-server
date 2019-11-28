@@ -1,0 +1,28 @@
+Catenis Off-Chain Server database schema:
+
+// NOTE: there should be one and only one document (record) for the Catenis collection
+Application {
+  _id: [object],  // MongoDB internal document ID
+  lastIpfsRepoRootCidsRetrievalDate: [date/time]  // Date and time when off-chain message data has been last retrieved
+}
+
+IpfsRepoScan {
+  _id: [object],  // MongoDB internal document ID
+  ctnNodeIdx: [number],  // The index of the Catenis node the IPFS repository of which this scan info refers to
+  repoSubtype: [string],  // The subtype of repository that this scan refers to; currently only 'off-chain-msg-data' (from IpfsRepo.repoSubtype)
+  lastScannedPath: [string],  // The path that has been last scanned
+  lastScannedFiles: {  // Specific information about last scanned files according to repository subtype
+    offChainMsgData: {
+      envelope: [string],  // Off-chain message envelope filename. May be null to indicate that there was no message envelope file in last scanned path
+      receipt: [string]  // Off-chain message receipt filename. May be null to indicate that there was no message envelope file in last scanned path
+    }
+  }
+}
+
+RetrievedOffChainMsgData {
+  _id: [object],  // MongoDB internal document ID
+  cid: [string],  // IPFS CID of off-chain message data
+  data: [binary],  // Off-Chain message data as a binary stream
+  dataType: [string],  // The type of the off-chain message data; either 'msg-envelope' or 'msg-receipt' (from IpfsRepo.offChainMsgDataType)
+  retrievedDate: [date/time]  // Date and time when off-chain message data has been retrieved
+}

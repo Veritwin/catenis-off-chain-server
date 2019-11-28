@@ -1,0 +1,36 @@
+// Config file with specific settings for development environment
+{
+  // Parameters pertaining to Logger module
+  logger: {
+    console: {
+      logLevel: "TRACE" // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+    },
+    email: {
+      active: false,
+      logLevel: "WARN", // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+      toAddresses: "claudiosdc@gmail.com", // Can be set to a comma separated list of e-mail addresses
+      fromAddress: "Catenis Off-Chain Server [Development] <csdecastro@hotmail.com>",
+    }
+  },
+  // Parameters pertaining to e-mail server configuration
+  email: {
+    smtpHost: "smtp-mail.outlook.com",
+    secureProto: "tls",  // (optional, can be set to null) Secure protocol that should be used with SMTP server. Valid options: 'ssl' or 'tls',
+    smtpPort: null,  // (optional, can be set to null) To be set only if different than default (depending on secureProto): none/null (25), ssl (465), tls (587)
+    username: "???????",  // (optional, can be set to null) To be set only if required by SMTP host
+    password: "???????"   // (optional, can be set to null) To be set only if required by SMTP host
+  },
+  // Parameters pertaining to Application module
+  application: {
+    environment: "development"
+  },
+  // Parameters pertaining to CtnNode module
+  ctnNode: {
+    pubKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKqZ82mcs8IQ+ZCkEkCKwkgW5hno7Rte2XNOKuwPYXNRDtkvIQiNbmy7wJBn7Fmq+mUsaZAtf++yYsD6vbgEz4/Q2+5qCnQIebUMP4JzoWRt+qJgIcS9HdKAt/j6hlVrLzb7AhV+jLBEZ+vv9Jj7x+MIWK0qTjvWngpWrvne4S1OtuDRXbH5TY+l0UqtqlyPD/P8or1evjx5RnmzMJSde0OghfbnwqfDgQIqIW+n+Ig5Df0MR4rrelCxzPodMvjXxB6+OcK8AAAJJ+AsRGzSS3rVnviDhxPcMOm3b2LWNehKgmTuIgg6VYLhGix/BdsfyXKxnoFDG4KyriKoaE+C+X"
+  },
+  // Parameter pertaining to IpfsClient module
+  ipfsClient: {
+    apiHost: "catenis-local-1",
+    apiPort: 9095  // Connects to IPFS Cluster node (via its HTTP proxy) instead of to IPFS node (port 5001) directly
+  }
+}

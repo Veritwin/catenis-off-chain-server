@@ -1,0 +1,104 @@
+// Default configuration file
+{
+  // Parameters pertaining to Logger module
+  logger: {
+    exitOnError: false,
+    objInspectionDepth: 4,
+    console: {
+      active: true,
+      logLevel: "INFO",  // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+      handleExceptions: false
+    },
+    file: {
+      active: true,
+      logLevel: "DEBUG",  // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+      handleExceptions: false,
+      logDir: "log",
+      logFilename: "ctnocsvr-%DATE%.log",
+      maxDays: 90
+    },
+    email: {
+      active: true,
+      logLevel: "WARN",  // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+      handleExceptions: false,
+      toAddresses: "andre@blockchainofthings.com",  // Can be set to a comma separated list of e-mail addresses
+      fromAddress: "Catenis Off-Chain Server <noreply@blockchainofthings.com>",
+      subjectFormat: "{{level}} [CtnNode%d] - {{msg}}"
+    }
+  },
+  // Parameters pertaining to e-mail server configuration
+  email: {
+    smtpHost: "localhost",
+    secureProto: null,  // (optional, can be set to null) Secure protocol that should be used with SMTP server. Valid options: 'ssl' or 'tls'
+    smtpPort: null,  // (optional, can be set to null) To be set only if different than default (depending on secureProto): none/null (25), ssl (465), tls (587)
+    username: null,  // (optional, can be set to null) To be set only if required by SMTP host
+    password: null  // (optional, can be set to null) To be set only if required by SMTP host
+  },
+  // Parameters pertaining to Application module
+  application: {
+    environment: "production",
+    isTest: false,
+    domain: "catenis.io",
+    shutdownTimeout: 5000,  // (5 sec.) Timeout, in milliseconds, to wait before shutting down the application
+    shutdownWithErrorTimeout: 10000,  // (10 sec.) Timeout, in milliseconds, to wait before shutting down the application after an uncaught exception
+                                      //  Note: this value should be substantially greater than the `shutdownTimeout` property
+  },
+  // Parameters pertaining to Database module
+  database: {
+    mongo: {
+      host: "localhost",  // Host name or IP address where mongoDB instance is running
+      port: null,  // (optional, can be set to null) Port used by mongoDB instance. Can be set to null to use mongoDB's default port (27017)
+      dbName: "CtnOCSvr"  // MongoDB database name to use
+    }
+  },
+  // Parameters pertaining to CtnNode module
+  ctnNode: {
+    index: 0,
+    idPrefix: 'ctn-node',
+    privKey: "?????",
+    pubKey: ""
+  },
+  // Parameters pertaining to CtnNameService module
+  ctnNameService: {
+    dnsRecName: "cns",
+    idPrefix: "cns",
+    connDefaults: {
+      port: 8188,
+      secure: false
+    }
+  },
+  // Parameters pertaining to CnsClient module
+  cnsClient: {
+    connectTimeout: 5000,  // (5 sec.) Time, in milliseconds, to wait for a socket
+    requestTimeout: 30000,  // (30 sec.) Time, in milliseconds, to wait for request to finish
+    hostFormat: "cns%d.%s",
+    headersToSign: [
+      "(request-target)",
+      "Date",
+      "Host"
+    ]
+  },
+  // Parameter pertaining to IpfsClient module
+  ipfsClient: {
+    apiHost: "localhost",
+    apiPort: 9095,  // Connects to IPFS Cluster node (via its HTTP proxy) instead of to IPFS node (port 5001) directly
+    apiProtocol: "http"
+  },
+  // Parameter pertaining to IpfsRepo module
+  ipfsRepo: {
+    rootDir: "/root",
+    saveRootCidInterval: 5000,  // (5 sec.) Time interval, in milliseconds, for saving IPFS repository root CID to CNS
+    retrieveRootCidsInterval: 5000,  // (5 sec.) Time interval, in milliseconds, for retrieving updated IPFS repository root CIDs from CNS
+    retrieveRootCidsWaitTimeout: 1000,  // (1 sec.) Time, in milliseconds, to wait to start retrieving updated IPFS repository root CIDs from CNS
+    cnsTimeDelay: 2000  // (2 sec.) Maximum expected delay between Catenis off-chain server time and CNS time
+  },
+  // Parameters pertaining to RestApi module
+  restApi: {
+    port: 8199,
+    host: null
+  },
+  // Parameters pertaining to ApiGetOffChainMsgData module
+  apiGetOffChainMsgData: {
+    maxItemsCount: 500  // Maximum number of data items that can be returned from a single call
+  }
+}
