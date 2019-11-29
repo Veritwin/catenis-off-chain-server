@@ -18,6 +18,7 @@ describe.only('IPFS Repository', function (done) {
     let newCid;
 
     before(function (done) {
+        this.timeout(10000);
         Future.task(function () {
             Application.initialize();
             Database.initialize();
@@ -51,8 +52,6 @@ describe.only('IPFS Repository', function (done) {
         Future.task(function () {
             CtnOCSvr.ipfsRepo.boundSaveRootCid(function (err) {
                 console.debug('>>>>>> Inner method finished');
-                CtnOCSvr.ipfsRepo.savingRootCid = false;
-
                 if (err) {
                     callDone(err);
                 }
@@ -71,7 +70,7 @@ describe.only('IPFS Repository', function (done) {
 
     it.skip('should successfully save off-chain message data', function (done) {
         Future.task(function () {
-            CtnOCSvr.ipfsRepo.saveOffChainMsgData(Buffer.from('Simulated off-chain msg receipt #3'), IpfsRepo.offChainMsgDataType.msgReceipt, '2019-11-15T07:38:02.835Z');
+            CtnOCSvr.ipfsRepo.saveOffChainMsgData(Buffer.from('Simulated off-chain msg receipt #20'), IpfsRepo.offChainMsgDataType.msgEnvelope, '2019-11-22T15:25:11.283Z');
             console.debug('>>>>>> ipfsRepo:', CtnOCSvr.ipfsRepo);
         }).resolve(done);
     });
@@ -84,7 +83,7 @@ describe.only('IPFS Repository', function (done) {
         }).resolve(done);
     });
 
-    it('should successfully retrieve off-chain message data', function (done) {
+    it.skip('should successfully retrieve off-chain message data', function (done) {
         this.timeout(10000);
         let doneCalled = false;
         function callDone(err) {
@@ -113,5 +112,43 @@ describe.only('IPFS Repository', function (done) {
                 callDone(err);
             }
         });
+    });
+
+    it.skip('should successfully retrieve repo root CID', function (done) {
+        this.timeout(10000);
+        let doneCalled = false;
+        function callDone(err) {
+            if (!doneCalled) {
+                doneCalled = true;
+                done(err);
+            }
+        }
+
+        Future.task(function () {
+            const prevRetrievalDate = CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate;
+
+            CtnOCSvr.ipfsRepo.boundRetrieveRootCids(function (err) {
+                console.debug('>>>>>> Inner method finished');
+                if (err) {
+                    callDone(err);
+                }
+                else {
+                    expect(CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate).to.not.equal(prevRetrievalDate);
+                    callDone();
+                }
+            });
+        }).resolve(function (err) {
+            console.debug('>>>>>> Future task returned');
+            if (err) {
+                callDone(err);
+            }
+        });
+    });
+
+    it.skip('should correctly list retrieved off-chain message data', function (done) {
+        Future.task(function () {
+            const result = CtnOCSvr.ipfsRepo.listRetrievedOffChainMsgData(new Date('2019-11-29T13:30:00Z'));
+            console.debug('>>>>>> List result:', result);
+        }).resolve(done);
     });
 });

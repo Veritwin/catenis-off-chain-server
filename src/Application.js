@@ -95,7 +95,7 @@ export function Application() {
                 }
 
                 // noinspection JSPotentiallyInvalidUsageOfThis
-                CtnOCSvr.db.collection.Application.update({_id: this.app_id}, {$set: {lastIpfsRepoRootCidsRetrievalDate: value}});
+                CtnOCSvr.db.collection.Application.updateOne({_id: this.app_id}, {$set: {lastIpfsRepoRootCidsRetrievalDate: value}});
             },
             enumerable: true
         }
@@ -172,11 +172,11 @@ function processShutdown() {
         CtnOCSvr.restApi.shutdown();
 
         // Wait for some time to make sure that all processing is finalized gracefully
-        //  before turning off access to IPFS repository
-        setTimeout(() => CtnOCSvr.ipfsRepo.turnAccessOff(), cfgSettings.shutdownTimeout);
+        //  before turning off IPFS repository automation
+        setTimeout(() => CtnOCSvr.ipfsRepo.turnAutomationOff(), cfgSettings.shutdownTimeout);
     }
     else if (CtnOCSvr.ipfsRepo) {
-        CtnOCSvr.ipfsRepo.turnAccessOff();
+        CtnOCSvr.ipfsRepo.turnAutomationOff();
     }
 
     if (CtnOCSvr.db) {

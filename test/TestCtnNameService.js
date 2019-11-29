@@ -11,7 +11,7 @@ import {Application} from '../src/Application';
 import {Database} from '../src/Database';
 import {CtnNameService} from '../src/CtnNameService';
 
-describe('Catenis Name Service', function (done) {
+describe.skip('Catenis Name Service', function (done) {
     let newCid;
 
     before(function (done) {

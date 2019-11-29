@@ -14,6 +14,7 @@ import config from 'config';
 import Future from 'fibers/future';
 import moment from 'moment';
 import async from 'async';
+import mongodb from 'mongodb';
 
 // References code in other (Catenis Name Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -86,6 +87,7 @@ IpfsRepo.prototype.turnAutomationOn = function () {
 
         // Indicate that IPFS repository automation is on
         this.automationOn = true;
+        CtnOCSvr.logger.TRACE('IPFS repo automation turned on');
         CtnOCSvr.app.setIpfsRepoAutomationOn();
     }
 };
@@ -124,24 +126,19 @@ IpfsRepo.prototype.turnAutomationOff = function () {
 
         saveRootCid.call(this, (err) => {
             if (err) {
+                CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS (during automation turnoff).', err);
+            }
+
+            retrieveRootCids.call(this, (err) => {
                 if (err) {
-                    CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS.', err);
+                    CtnOCSvr.logger.ERROR('Error while retrieving updated IPFS repository root CIDs (during automation turnoff).', err);
                 }
 
-                this.savingRootCid = false;
-
-                retrieveRootCids.call(this, (err) => {
-                    if (err) {
-                        CtnOCSvr.logger.ERROR('Error while retrieving updated IPFS repository root CIDs.', err);
-                    }
-
-                    this.retrievingRootCids = false;
-
-                    // Indicate that automation is off
-                    this.automationOn = false;
-                    CtnOCSvr.app.setIpfsRepoAutomationOff();
-                });
-            }
+                // Indicate that automation is off
+                this.automationOn = false;
+                CtnOCSvr.logger.TRACE('IPFS repo automation turned off');
+                CtnOCSvr.app.setIpfsRepoAutomationOff();
+            });
         });
     }
 };
@@ -250,7 +247,7 @@ IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limi
         result.dataItems = retDocs.map(doc => {
             return {
                 cid: doc.cid,
-                data: Buffer.from(doc.data.buffer),
+                data: doc.data.buffer.toString('base64'),
                 dataType: doc.dataType,
                 savedDate: doc.savedDate,
                 retrievedDate: doc.retrievedDate
@@ -321,20 +318,11 @@ function saveRootCid(callback) {
     if (!this.savingRootCid) {
         this.savingRootCid = true;
 
-        if (typeof callback !== 'function') {
-            callback = (err) => {
-                if (err) {
-                    CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS.', err);
-                }
-
-                this.savingRootCid = false;
-            };
-        }
-
         // Make sure that code runs in its own fiber
         Future.task(() => {
             // Check if root CID needs to be saved
             if (this.rootCid !== this.lastSavedRootCid) {
+                CtnOCSvr.logger.TRACE('About to save updated IPFS repository root CID');
                 const rootCid = this.rootCid;
 
                 // Pin root CID (and all its subdirectories) before saving it
@@ -349,23 +337,28 @@ function saveRootCid(callback) {
                 CtnOCSvr.cns.setIpfsRepoRootCid(rootCid);
                 this.lastSavedRootCid = rootCid;
             }
-        }).resolve(callback);
+        }).resolve((err) => {
+            this.savingRootCid = false;
+
+            if (typeof callback === 'function') {
+                callback(err);
+            }
+            else {
+                if (err) {
+                    CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS.', err);
+                }
+
+                if (this.futTurnAutomationOff) {
+                    this.futTurnAutomationOff.return();
+                }
+            }
+        });
     }
 }
 
 function retrieveRootCids(callback) {
     if (!this.retrievingRootCids) {
         this.retrievingRootCids = true;
-
-        if (typeof callback !== 'function') {
-            callback = (err) => {
-                if (err) {
-                    CtnOCSvr.logger.ERROR('Error while retrieving updated IPFS repository root CIDs.', err);
-                }
-
-                this.retrievingRootCids = false;
-            };
-        }
 
         // Make sure that code runs in its own fiber
         Future.task(() => {
@@ -381,6 +374,7 @@ function retrieveRootCids(callback) {
             const ipfsRepoRootCids = CtnOCSvr.cns.getAllIpfsRepoRootCids(updatedSince);
 
             if (ipfsRepoRootCids) {
+                CtnOCSvr.logger.TRACE('About to retrieve off-chain message data from updated IPFS repositories');
                 // Add reference date to each returned repo root
                 Object.values(ipfsRepoRootCids).forEach(repoRoot => repoRoot.refDate = refDate);
 
@@ -394,12 +388,31 @@ function retrieveRootCids(callback) {
 
             // Update IPFS repository root CIDs retrieval date
             CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate = refDate;
-        }).resolve(callback);
+        }).resolve((err) => {
+            this.retrievingRootCids = false;
+
+            if (typeof callback === 'function') {
+                callback(err);
+            }
+            else {
+                if (err) {
+                    CtnOCSvr.logger.ERROR('Error while retrieving updated IPFS repository root CIDs.', err);
+                }
+
+                if (this.futTurnAutomationOff) {
+                    this.futTurnAutomationOff.return();
+                }
+            }
+        });
     }
 }
 
 function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
     try {
+        if (typeof ctnNodeIdx !== 'number') {
+            ctnNodeIdx = Number.parseInt(ctnNodeIdx);
+        }
+
         const docIpfsRepoScan = CtnOCSvr.db.collection.IpfsRepoScan.findOne({
             ctnNodeIdx: ctnNodeIdx,
             repoSubtype: IpfsRepo.repoSubtype.offChainMsgData.name
@@ -480,7 +493,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                         // Save retrieved off-chain message envelope
                                         docsRetrievedOffChainMsgDataToInsert.push({
                                             cid: fileEntry.hash,
-                                            data: new Uint8Array(msgEnvelopeData),  // NOTE: convert Buffer object into a TypedArray so the data is stored as a binary stream
+                                            data: new mongodb.Binary(msgEnvelopeData),
                                             dataType: IpfsRepo.offChainMsgDataType.msgEnvelope.name,
                                             savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataType.msgEnvelope.filenamePrefix, fileEntry.name),
                                             retrievedDate: repoRoot.refDate
@@ -541,9 +554,9 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                         // Save retrieved off-chain message receipt
                                         docsRetrievedOffChainMsgDataToInsert.push({
                                             cid: fileEntry.hash,
-                                            data: new Uint8Array(msgReceiptData),  // NOTE: convert Buffer object into a TypedArray so the data is stored as a binary stream
+                                            data: new mongodb.Binary(msgReceiptData),
                                             dataType: IpfsRepo.offChainMsgDataType.msgReceipt.name,
-                                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataType.msgEnvelope.filenamePrefix, fileEntry.name),
+                                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataType.msgReceipt.filenamePrefix, fileEntry.name),
                                             retrievedDate: repoRoot.refDate
                                         });
 
@@ -602,7 +615,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                         fieldsToUpdate['lastScannedFiles.offChainMsgData.receipt'] = lastMsgReceipt;
                                     }
 
-                                    CtnOCSvr.db.collection.IpfsRepoScan.update({
+                                    CtnOCSvr.db.collection.IpfsRepoScan.updateOne({
                                         _id: docIpfsRepoScan._id
                                     }, {
                                         $set: fieldsToUpdate

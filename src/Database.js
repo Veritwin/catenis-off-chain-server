@@ -93,9 +93,8 @@ function initCollections(collDescriptor) {
             findOne: wrapAsync(mongoCollection.findOne, mongoCollection),
             insertOne: wrapAsync(mongoCollection.insertOne, mongoCollection),
             insertMany: wrapAsync(mongoCollection.insertMany, mongoCollection),
-            insert: function (docs, options) {
-                return (Array.isArray(docs) ? this.insertMany : this.insertOne)(docs, options);
-            },
+            updateOne: wrapAsync(mongoCollection.updateOne, mongoCollection),
+            updateMany: wrapAsync(mongoCollection.updateMany, mongoCollection),
             remove: wrapAsync(mongoCollection.remove, mongoCollection)
         };
 
@@ -163,7 +162,7 @@ function initApplicationCollection() {
 
     if (docApps.length === 0) {
         // No doc/rec defined yet. Create new doc/rec with default settings
-        this.collection.Application.insert({
+        this.collection.Application.insertOne({
             lastIpfsRepoRootCidsRetrievalDate: null
         });
     }
@@ -198,6 +197,14 @@ Database.initialize = function() {
         },
         RetrievedOffChainMsgData: {
             indices: [{
+                fields: {
+                    cid: 1
+                },
+                opts: {
+                    background: true,
+                    w: 1
+                }
+            }, {
                 fields: {
                     dataType: 1
                 },

@@ -11,7 +11,7 @@ import {Application} from '../src/Application';
 import {Database} from '../src/Database';
 import {IpfsClient} from '../src/IpfsClient';
 
-describe('IPFS Client', function (done) {
+describe.skip('IPFS Client', function (done) {
     before(function (done) {
         Future.task(function () {
             Application.initialize();
