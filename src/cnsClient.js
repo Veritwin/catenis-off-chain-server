@@ -44,21 +44,15 @@ export function CnsClient(cnsInstanceInfo) {
         signRequest: httpSignRequest,
         url: assembleUrl(cnsInstanceInfo)
     });
+    this.futGet = Future.wrap(this.client.get, true);
+    this.futPost = Future.wrap(this.client.post, true);
     this.syncMethod = {
-        get: (() => {
-            const futFunc = Future.wrap(this.client.get, true).bind(this.client);
-
-            return function syncGet() {
-                return futFunc.apply(this, arguments).wait();
-            }
-        })(),
-        post: (() => {
-            const futFunc = Future.wrap(this.client.post, true).bind(this.client);
-
-            return function syncPost() {
-                return futFunc.apply(this, arguments).wait();
-            }
-        })()
+        get: (...args) => {
+            return this.futGet.apply(this.client, args).wait();
+        },
+        post: (...args) => {
+            return this.futPost.apply(this.client, args).wait();
+        }
     }
 }
 
