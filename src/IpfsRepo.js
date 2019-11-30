@@ -318,6 +318,7 @@ function initRootCid() {
 
 function saveRootCid(callback) {
     if (!this.savingRootCid) {
+        CtnOCSvr.logger.TRACE('Executing procedure to save updated IPFS repository root CID');
         this.savingRootCid = true;
 
         // Make sure that code runs in its own fiber
@@ -360,6 +361,7 @@ function saveRootCid(callback) {
 
 function retrieveRootCids(callback) {
     if (!this.retrievingRootCids) {
+        CtnOCSvr.logger.TRACE('Executing procedure to retrieve root CID of IPFS repositories');
         this.retrievingRootCids = true;
 
         // Make sure that code runs in its own fiber
