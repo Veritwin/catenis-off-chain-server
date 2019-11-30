@@ -37,12 +37,15 @@ const cfgSettings = {
 // CnsClient function class
 export function CnsClient(cnsInstanceInfo) {
     this.cnsInstanceInfo = cnsInstanceInfo;
+    // NOTE: we are using the `agent: false` option below to avoid ECONNRESET and socket hangup
+    //  errors when calling the CNS API methods repeatedly with a short time interval
     this.client = new restifyClients.createJSONClient({
         connectTimeout: cfgSettings.connectTimeout,
         requestTimeout: cfgSettings.requestTimeout,
         retry: false,
         signRequest: httpSignRequest,
-        url: assembleUrl(cnsInstanceInfo)
+        url: assembleUrl(cnsInstanceInfo),
+        agent: false
     });
     this.futGet = Future.wrap(this.client.get, true);
     this.futPost = Future.wrap(this.client.post, true);
