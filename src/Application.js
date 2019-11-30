@@ -161,6 +161,7 @@ function startProcessing() {
     CtnOCSvr.logger.TRACE('Application started');
     this.runningState = Application.runningState.started;
 
+    this.runningState = Application.runningState.ready;
     CtnOCSvr.logger.INFO('Application ready');
 }
 
