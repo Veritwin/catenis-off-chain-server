@@ -77,11 +77,13 @@ export function IpfsRepo(ipfsClient) {
 IpfsRepo.prototype.turnAutomationOn = function () {
     if (!this.automationOn) {
         // Set recurring timer to save IPFS repository root CID onto CNS
+        saveRootCid.call(this);
         this.saveRootCidInterval = setInterval(saveRootCid.bind(this), cfgSettings.saveRootCidInterval);
 
         // Set recurring timer to retrieve updated IPFS repository root CIDs from CNS
         this.retrieveRootCidsWaitTimeout = setTimeout(() => {
             this.retrieveRootCidsWaitTimeout = undefined;
+            retrieveRootCids.call(this);
             this.retrieveRootCidsInterval = setInterval(retrieveRootCids.bind(this), cfgSettings.retrieveRootCidsInterval);
         }, cfgSettings.retrieveRootCidsWaitTimeout);
 
