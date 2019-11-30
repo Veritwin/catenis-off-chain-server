@@ -12,6 +12,7 @@
 import config from 'config';
 import resError from 'restify-errors';
 import moment from 'moment';
+import Future from 'fibers/future';
 
 // References code in other (Catenis Name Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -51,32 +52,36 @@ export const cfgSettings = {
 //  }
 //
 export function getOffChainMsgData(req, res, next) {
-    try {
+    // Make sure that code runs in its own fiber
+    Future.task(() => {
         if (!this.canProcess()) {
-            return next(new resError.ServiceUnavailableError('Service unavailable'));
+            return new resError.ServiceUnavailableError('Service unavailable');
         }
 
         if (!checkRequestParams(req)) {
-            return next(new resError.BadRequestError('Invalid request parameters'));
+            return new resError.BadRequestError('Invalid request parameters');
         }
 
-        const result = CtnOCSvr.ipfsRepo.listRetrievedOffChainMsgData(req.params.retrievedAfter, req.params.limit, req.params.skip);
+        const listResult = CtnOCSvr.ipfsRepo.listRetrievedOffChainMsgData(req.params.retrievedAfter, req.params.limit, req.params.skip);
 
         const successResult = {
             status: 'success'
         };
 
-        if (result) {
-            successResult.data = result;
+        if (listResult) {
+            successResult.data = listResult;
         }
 
         res.send(successResult);
-        return next();
-    }
-    catch (err) {
-        CtnOCSvr.logger.ERROR('Error processing GET \'/msg-data\' API request.', err);
-        return next(new resError.InternalServerError('Internal server error'));
-    }
+    }).resolve((err, result) => {
+        if (err) {
+            CtnOCSvr.logger.ERROR('Error processing GET \'/msg-data\' API request.', err);
+            next(new resError.InternalServerError('Internal server error'));
+        }
+        else {
+            next(result);
+        }
+    });
 }
 
 function checkRequestParams(req) {
@@ -94,25 +99,29 @@ function checkRequestParams(req) {
         }
     }
 
-    let n = strictParseInt(req.params.limit);
+    if (req.params.limit) {
+        const n = strictParseInt(req.params.limit);
 
-    if (!Number.isNaN(n) && n > 0 && n <= cfgSettings.maxItemsCount) {
-        req.params.limit = n;
-    }
-    else {
-        CtnOCSvr.logger.DEBUG('getOffChainMsgData: invalid `limit` request parameter [%s]', req.params.limit);
-        valid = false;
+        if (!Number.isNaN(n) && n > 0 && n <= cfgSettings.maxItemsCount) {
+            req.params.limit = n;
+        }
+        else {
+            CtnOCSvr.logger.DEBUG('getOffChainMsgData: invalid `limit` request parameter [%s]', req.params.limit);
+            valid = false;
+        }
     }
 
-    n = strictParseInt(req.params.skip);
+    if (req.params.skip) {
+        const n = strictParseInt(req.params.skip);
 
-    if (!Number.isNaN(n) && n >= 0) {
-        req.params.skip = n;
+        if (!Number.isNaN(n) && n >= 0) {
+            req.params.skip = n;
+        }
+        else {
+            CtnOCSvr.logger.DEBUG('getOffChainMsgData: invalid `skip` request parameter [%s]', req.params.skip);
+            valid = false;
+        }
     }
-    else {
-        CtnOCSvr.logger.DEBUG('getOffChainMsgData: invalid `skip` request parameter [%s]', req.params.skip);
-        valid = false;
-    }
-    
+
     return valid;
 }

@@ -12,6 +12,7 @@
 // Third-party node modules
 import resError from 'restify-errors';
 import ctnOffChainLib from 'catenis-off-chain-lib';
+import Future from 'fibers/future';
 
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -32,24 +33,25 @@ import {IpfsRepo} from './IpfsRepo';
 //  }
 //
 export function saveOffChainMsgEnvelope(req, res, next) {
+    // Make sure that code runs in its own fiber
     // noinspection DuplicatedCode
-    try {
+    Future.task(() => {
         if (!this.canProcess()) {
-            return next(new resError.ServiceUnavailableError('Service unavailable'));
+            return new resError.ServiceUnavailableError('Service unavailable');
         }
 
         if (req.getContentType() !== 'application/json') {
-            return next(new resError.UnsupportedMediaTypeError('Unsupported media type'))
+            return new resError.UnsupportedMediaTypeError('Unsupported media type');
         }
 
         if (!(typeof req.body === 'object' && req.body !== null)) {
-            return next(new resError.BadRequestError('Missing body parameters'));
+            return new resError.BadRequestError('Missing body parameters');
         }
 
         const bufMsgEnvelope = validateOffChainMsgEnvelope(req.body.data);
 
         if (!bufMsgEnvelope) {
-            return next(new resError.BadRequestError('Missing or invalid body parameters'));
+            return new resError.BadRequestError('Missing or invalid body parameters');
         }
 
         // Save off-chain message data onto IPFS repository
@@ -58,12 +60,15 @@ export function saveOffChainMsgEnvelope(req, res, next) {
         res.send({
             status: 'success'
         });
-        return next();
-    }
-    catch (err) {
-        CtnOCSvr.logger.ERROR('Error processing POST \'/msg-data/envelope\' API request.', err);
-        return next(new resError.InternalServerError('Internal server error'));
-    }
+    }).resolve((err, result) => {
+        if (err) {
+            CtnOCSvr.logger.ERROR('Error processing POST \'/msg-data/envelope\' API request.', err);
+            return next(new resError.InternalServerError('Internal server error'));
+        }
+        else {
+            next(result);
+        }
+    });
 }
 
 function validateOffChainMsgEnvelope(data) {
