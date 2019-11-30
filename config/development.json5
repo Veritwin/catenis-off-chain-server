@@ -32,5 +32,10 @@
   ipfsClient: {
     apiHost: "catenis-local-1",
     apiPort: 9095  // Connects to IPFS Cluster node (via its HTTP proxy) instead of to IPFS node (port 5001) directly
+  },
+  // Parameter pertaining to IpfsRepo module
+  ipfsRepo: {
+    saveRootCidInterval: 5000,  // (5 sec.) Time interval, in milliseconds, for saving IPFS repository root CID to CNS
+    retrieveRootCidsInterval: 10000  // (10 sec.) Time interval, in milliseconds, for retrieving updated IPFS repository root CIDs from CNS
   }
 }
