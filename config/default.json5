@@ -95,7 +95,7 @@
   // Parameters pertaining to RestApi module
   restApi: {
     port: 8199,
-    host: null
+    host: '127.0.0.1'
   },
   // Parameters pertaining to ApiGetOffChainMsgData module
   apiGetOffChainMsgData: {
