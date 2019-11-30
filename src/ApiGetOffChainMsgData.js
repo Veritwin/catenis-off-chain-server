@@ -62,17 +62,10 @@ export function getOffChainMsgData(req, res, next) {
             return new resError.BadRequestError('Invalid request parameters');
         }
 
-        const listResult = CtnOCSvr.ipfsRepo.listRetrievedOffChainMsgData(req.params.retrievedAfter, req.params.limit, req.params.skip);
-
-        const successResult = {
-            status: 'success'
-        };
-
-        if (listResult) {
-            successResult.data = listResult;
-        }
-
-        res.send(successResult);
+        res.send({
+            status: 'success',
+            data: CtnOCSvr.ipfsRepo.listRetrievedOffChainMsgData(req.params.retrievedAfter, req.params.limit, req.params.skip)
+        });
     }).resolve((err, result) => {
         if (err) {
             CtnOCSvr.logger.ERROR('Error processing GET \'/msg-data\' API request.', err);

@@ -233,14 +233,13 @@ IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limi
         options.skip = skip;
     }
 
+    const result = {
+        dataItems: [],
+        hasMore: false
+    };
     const retDocs = CtnOCSvr.db.collection.RetrievedOffChainMsgData.find(query, options);
 
     if (retDocs.length > 0) {
-        const result = {
-            dataItems: undefined,
-            hasMore: false
-        };
-
         if (limit && retDocs.length > limit) {
             result.hasMore = true;
             retDocs.pop();
@@ -255,9 +254,9 @@ IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limi
                 retrievedDate: doc.retrievedDate
             };
         });
-
-        return result;
     }
+
+    return result;
 };
 
 
