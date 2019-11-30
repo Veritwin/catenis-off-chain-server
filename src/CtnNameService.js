@@ -47,7 +47,7 @@ export function CtnNameService() {
         maxIdx: {
             get: function () {
                 // noinspection JSPotentiallyInvalidUsageOfThis
-                return Math.max(this.cnsInstances.length - 1, this.curCNSIdx !== undefined ? this.curCNSIdx : 0);
+                return Math.max(this.cnsInstances.length - 1, this.initCNSIdx !== undefined ? this.initCNSIdx : 0);
             },
             enumerable: true
         },
@@ -150,6 +150,12 @@ function callMethod(methodName) {
     let result;
     let error;
     let iterations = 0;
+    let cnsInstancesReset = false;
+
+    if (!this.cnsConnection) {
+        changeCnsInstance.call(this, true);
+        cnsInstancesReset = true;
+    }
 
     do {
         try {
@@ -163,7 +169,7 @@ function callMethod(methodName) {
 
         iterations++;
     }
-    while (error && changeCnsInstance.call(this, iterations === 1));
+    while (error && changeCnsInstance.call(this, !cnsInstancesReset && iterations === 1));
 
     if (error) {
         CtnOCSvr.logger.ERROR(util.format('Failed to call Catenis Name Server API method \'%s\'', methodName));
