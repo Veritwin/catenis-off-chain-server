@@ -69,15 +69,6 @@ export function saveOffChainMsgReceipt(req, res, next) {
             next(result);
         }
     });
-
-    // noinspection DuplicatedCode
-    try {
-        return next();
-    }
-    catch (err) {
-        CtnOCSvr.logger.ERROR('Error processing POST \'/msg-data/receipt\' API request.', err);
-        return next(new resError.InternalServerError('Internal server error'));
-    }
 }
 
 function validateOffChainMsgReceipt(data) {
