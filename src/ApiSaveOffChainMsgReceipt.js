@@ -81,7 +81,7 @@ function validateOffChainMsgReceipt(data) {
             ocMsgReceipt = ctnOffChainLib.MessageReceipt.fromBuffer(bufData);
         }
         catch (err) {
-            CtnOCSvr.logger.ERROR('saveOffChainMsgReceipt: `data` body parameter is not a valid Catenis off-chain message receipt');
+            CtnOCSvr.logger.DEBUG('saveOffChainMsgReceipt: `data` body parameter is not a valid Catenis off-chain message receipt');
         }
 
         if (ocMsgReceipt) {
@@ -90,11 +90,11 @@ function validateOffChainMsgReceipt(data) {
                     return bufData;
                 }
                 else {
-                    CtnOCSvr.logger.ERROR('saveOffChainMsgReceipt: `data` body parameter contains a Catenis off-chain message receipt with an invalid signature');
+                    CtnOCSvr.logger.DEBUG('saveOffChainMsgReceipt: `data` body parameter contains a Catenis off-chain message receipt with an invalid signature');
                 }
             }
             else {
-                CtnOCSvr.logger.ERROR('saveOffChainMsgReceipt: `data` body parameter contains a Catenis off-chain message receipt that is not signed');
+                CtnOCSvr.logger.DEBUG('saveOffChainMsgReceipt: `data` body parameter contains a Catenis off-chain message receipt that is not signed');
             }
         }
     }

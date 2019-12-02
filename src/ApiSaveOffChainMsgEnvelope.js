@@ -81,7 +81,7 @@ function validateOffChainMsgEnvelope(data) {
             ocMsgEnvelope = ctnOffChainLib.MessageEnvelope.fromBuffer(bufData);
         }
         catch (err) {
-            CtnOCSvr.logger.ERROR('saveOffChainMsgEnvelope: `data` body parameter is not a valid Catenis off-chain message envelope');
+            CtnOCSvr.logger.DEBUG('saveOffChainMsgEnvelope: `data` body parameter is not a valid Catenis off-chain message envelope');
         }
 
         if (ocMsgEnvelope) {
@@ -90,11 +90,11 @@ function validateOffChainMsgEnvelope(data) {
                     return bufData;
                 }
                 else {
-                    CtnOCSvr.logger.ERROR('saveOffChainMsgEnvelope: `data` body parameter contains a Catenis off-chain message envelope with an invalid signature');
+                    CtnOCSvr.logger.DEBUG('saveOffChainMsgEnvelope: `data` body parameter contains a Catenis off-chain message envelope with an invalid signature');
                 }
             }
             else {
-                CtnOCSvr.logger.ERROR('saveOffChainMsgEnvelope: `data` body parameter contains a Catenis off-chain message envelope that is not signed');
+                CtnOCSvr.logger.DEBUG('saveOffChainMsgEnvelope: `data` body parameter contains a Catenis off-chain message envelope that is not signed');
             }
         }
     }
