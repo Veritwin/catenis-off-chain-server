@@ -304,12 +304,14 @@ function initRootCid() {
     }
     else if (this.lastSavedRootCid) {
         // Repository root CID not found in IPFS node. Set it to last saved value
+        CtnOCSvr.logger.WARN('Repository root directory (/root) not found in IPFS node. Setting it to root CID currently saved to CNS.');
         this.ipfsClient.filesCp('ipfs/' + this.lastSavedRootCid, cfgSettings.rootDir);
         this.rootCid = this.lastSavedRootCid;
     }
     else {
         // Repository root CID not found in IPFS node, and no value is saved to CNS.
         //  Define new root
+        CtnOCSvr.logger.WARN('Repository root directory (/root) not found in IPFS node, and no root CID is currently saved to CNS. Creating a new (empty) root directory.');
         this.ipfsClient.filesMkdir(cfgSettings.rootDir);
         this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).hash;
     }
