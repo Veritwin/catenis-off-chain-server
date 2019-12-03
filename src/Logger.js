@@ -175,10 +175,10 @@ function setUpTransports() {
             exceptionsLevel: 'FATAL',
             humanReadableUnhandledException: true,
             datePattern: 'YYYY-MM-DD',
-            dirname: path.join(global.CNS_ROOT_DIR, cfgSettings.file.logDir),
+            dirname: path.join(global.CTN_OC_SVR_ROOT_DIR, cfgSettings.file.logDir),
             filename: cfgSettings.file.logFilename,
             maxFiles: cfgSettings.file.maxDays + 'd',
-            auditFile: path.join(global.CNS_ROOT_DIR, cfgSettings.file.logDir, '.log-audit.json'),
+            auditFile: path.join(global.CTN_OC_SVR_ROOT_DIR, cfgSettings.file.logDir, '.log-audit.json'),
             format: winston.format.combine(
                 winston.format.timestamp(),
                 mergeMetaArguments({colors: false}),

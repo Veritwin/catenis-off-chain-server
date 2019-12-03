@@ -22,9 +22,9 @@ import {fixIt as fixMoment} from './FixMoment';
 fixMoment();
 
 // Set application root directory
-global.CNS_ROOT_DIR = path.join(__dirname, '..');
+global.CTN_OC_SVR_ROOT_DIR = path.join(__dirname, '..');
 
 // Set config directory
 if (!process.env.NODE_CONFIG_DIR) {
-    process.env.NODE_CONFIG_DIR = path.join(global.CNS_ROOT_DIR, 'config');
+    process.env.NODE_CONFIG_DIR = path.join(global.CTN_OC_SVR_ROOT_DIR, 'config');
 }
