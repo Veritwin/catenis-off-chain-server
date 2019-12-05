@@ -92,6 +92,17 @@ Success response body: a JSON containing the following keys:
 - `data.dataItems\[n\].retrievedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has been retrieved.
 - `data.hasMore`: \[Boolean\] Indicates whether there are more data items that satisfy the search criteria yet to be returned.
 
+## Client notification
+
+WebSocket connection endpoint: `/notify`
+
+> **Note**: the same authentication scheme used for the REST API should be used when establishing the WebSocket
+ connection. 
+
+### New off-chain message data
+
+Outgoing message: NEW_OFF_CHAIN_MSG_DATA
+
 ## License
 
 This project is for Blockchain of Things' internal use only.

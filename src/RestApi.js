@@ -21,6 +21,7 @@ import {ctnNode} from './CtnNode';
 import {saveOffChainMsgEnvelope} from './ApiSaveOffChainMsgEnvelope';
 import {saveOffChainMsgReceipt} from './ApiSaveOffChainMsgReceipt';
 import {getOffChainMsgData} from './ApiGetOffChainMsgData';
+import {upgradeClientNotification} from './ApiUpgradeClientNotification';
 
 // Config entries
 const restApiConfig = config.get('restApi');
@@ -39,7 +40,9 @@ export const cfgSettings = {
 export function RestApi(port, host) {
     this.apiReady = false;
 
-    const opts = {};
+    const opts = {
+        handleUpgrades: true
+    };
 
     this.apiServer = new restify.createServer(opts);
 
@@ -57,6 +60,7 @@ export function RestApi(port, host) {
     this.apiServer.post('/msg-data/envelope', saveOffChainMsgEnvelope.bind(this));
     this.apiServer.post('/msg-data/receipt', saveOffChainMsgReceipt.bind(this));
     this.apiServer.get('/msg-data', getOffChainMsgData.bind(this));
+    this.apiServer.get('/notify', upgradeClientNotification.bind(this));
 
     this.apiServer.listen(port, host, () => {
         CtnOCSvr.logger.INFO('Catenis Off-Chain Server started at', this.apiServer.address());
@@ -105,6 +109,7 @@ RestApi.prototype.shutdown = function () {
 //
 
 RestApi.initialize = function () {
+    CtnOCSvr.logger.TRACE('RestApi initialization');
     CtnOCSvr.restApi = new RestApi(cfgSettings.port, cfgSettings.host);
 };
 

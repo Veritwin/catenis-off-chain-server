@@ -95,10 +95,17 @@
   // Parameters pertaining to RestApi module
   restApi: {
     port: 8199,
-    host: '127.0.0.1'
+    host: "127.0.0.1"
   },
   // Parameters pertaining to ApiGetOffChainMsgData module
   apiGetOffChainMsgData: {
     maxItemsCount: 500  // Maximum number of data items that can be returned from a single call
+  },
+  // Parameters pertaining to clientNotification module
+  clientNotification: {
+    heartbeatInterval: 30000,  // (30 sec.) Time interval, in milliseconds, for sending heartbeat ping package to client
+    message: {
+      newOffChainMsgData: 'NEW_OFF_CHAIN_MSG_DATA'
+    }
   }
 }

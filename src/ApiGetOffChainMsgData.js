@@ -1,6 +1,7 @@
 /**
  * Created by claudio on 2019-11-26
  */
+
 // Module variables
 //
 
@@ -55,6 +56,10 @@ export const cfgSettings = {
 export function getOffChainMsgData(req, res, next) {
     // Make sure that code runs in its own fiber
     Future.task(() => {
+        if (res.claimUpgrade) {
+            return new resError.ForbiddenError('Endpoint does not allow for connection upgrade');
+        }
+
         if (!this.canProcess()) {
             return new resError.ServiceUnavailableError('Service unavailable');
         }

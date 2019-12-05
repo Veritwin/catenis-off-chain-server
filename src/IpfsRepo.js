@@ -583,7 +583,16 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                     async.parallel([
                         (cb1) => {
                             if (docsRetrievedOffChainMsgDataToInsert.length > 0) {
-                                CtnOCSvr.db.collection.RetrievedOffChainMsgData.insertMany(docsRetrievedOffChainMsgDataToInsert, cb1);
+                                CtnOCSvr.db.collection.RetrievedOffChainMsgData.insertMany(docsRetrievedOffChainMsgDataToInsert, (err, result) => {
+                                    if (err) {
+                                        cb1(err);
+                                    }
+                                    else {
+                                        // Notify clients that new off-chain message data has been retrieved
+                                        CtnOCSvr.clientNotifier.notifyNewOffChainMsgData();
+                                        cb1();
+                                    }
+                                });
                             }
                             else {
                                 cb1();

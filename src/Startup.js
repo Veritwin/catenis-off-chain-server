@@ -19,6 +19,7 @@ import {Database} from './Database';
 import {CtnNameService} from './CtnNameService';
 import {IpfsClient} from './IpfsClient';
 import {IpfsRepo} from './IpfsRepo';
+import {ClientNotification} from './ClientNotification';
 import {RestApi} from './RestApi';
 
 // Module code
@@ -31,5 +32,6 @@ Future.task(function mainTask() {
     CtnNameService.initialize();
     IpfsClient.initialize();
     IpfsRepo.initialize();
+    ClientNotification.initialize();
     RestApi.initialize();
 }).detach();

@@ -36,6 +36,10 @@ export function saveOffChainMsgReceipt(req, res, next) {
     // Make sure that code runs in its own fiber
     // noinspection DuplicatedCode
     Future.task(() => {
+        if (res.claimUpgrade) {
+            return new resError.ForbiddenError('Endpoint does not allow for connection upgrade');
+        }
+
         if (!this.canProcess()) {
             return new resError.ServiceUnavailableError('Service unavailable');
         }
