@@ -58,6 +58,8 @@ Request body: a JSON object containing the following keys:
 
 Success response body: a JSON containing the following keys:
 - `status`: \[String\] The value **'success'**.
+- `data.cid`: \[String\] IPFS CID of the saved off-chain message envelope.
+- `data.savedDate`: \[String\] ISO-8601 formatted date and time when off-chain message envelope has been saved.
 
 ### Save off-chain message receipt
 
@@ -68,6 +70,8 @@ Request body: a JSON object containing the following keys:
 
 Success response body: a JSON containing the following keys:
 - `status`: \[String\] The value **'success'**.
+- `data.cid`: \[String\] IPFS CID of the saved off-chain message receipt.
+- `data.savedDate`: \[String\] ISO-8601 formatted date and time when off-chain message receipt has been saved.
 
 ### Get off-chain message data
 

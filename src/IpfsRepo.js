@@ -146,6 +146,8 @@ IpfsRepo.prototype.turnAutomationOff = function () {
 };
 
 IpfsRepo.prototype.saveOffChainMsgData = function (data, dataType, refDate) {
+    let result;
+
     // Execute code in critical section to serialize calls
     this.saveCS.execute(() => {
         const mtRefDate = moment(refDate).utc();
@@ -200,9 +202,16 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, dataType, refDate) {
             parents: true
         });
 
+        result = {
+            cid: this.ipfsClient.filesStat(path, {hash: true}).hash,
+            sentDate: mtRefDate.toISOString()
+        };
+
         // Retrieve updated repository root CID
         this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).hash;
     });
+
+    return result;
 };
 
 IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limit, skip) {

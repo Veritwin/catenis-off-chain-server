@@ -29,7 +29,11 @@ import {IpfsRepo} from './IpfsRepo';
 //  }
 //
 //  Success data returned: {
-//    "status": "success"
+//    "status": "success",
+//    "data": {
+//      "cid": [String], IPFS CID of the saved off-chain message envelope
+//      "savedDate": [String] ISO-8601 formatted date and time when off-chain message envelope has been saved
+//    }
 //  }
 //
 export function saveOffChainMsgEnvelope(req, res, next) {
@@ -59,10 +63,11 @@ export function saveOffChainMsgEnvelope(req, res, next) {
         }
 
         // Save off-chain message data onto IPFS repository
-        CtnOCSvr.ipfsRepo.saveOffChainMsgData(bufMsgEnvelope, IpfsRepo.offChainMsgDataType.msgEnvelope);
+        const saveResult = CtnOCSvr.ipfsRepo.saveOffChainMsgData(bufMsgEnvelope, IpfsRepo.offChainMsgDataType.msgEnvelope);
 
         res.send({
-            status: 'success'
+            status: 'success',
+            data: saveResult
         });
     }).resolve((err, result) => {
         if (err) {
