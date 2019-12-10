@@ -15,6 +15,7 @@ import Future from 'fibers/future';
 import moment from 'moment';
 import async from 'async';
 import mongodb from 'mongodb';
+import ctnOffChainLib from 'catenis-off-chain-lib';
 
 // References code in other (Catenis Name Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -739,14 +740,14 @@ IpfsRepo.repoSubtype = Object.freeze({
 
 IpfsRepo.offChainMsgDataType = Object.freeze({
     msgEnvelope: Object.freeze({
-        name: 'msg-envelope',
-        description: 'Off-Chain message envelope',
+        name: ctnOffChainLib.OffChainData.type.msgEnvelope.name,
+        description: ctnOffChainLib.OffChainData.type.msgEnvelope.description,
         subDir: '/msg',
         filenamePrefix: 'msg-'
     }),
     msgReceipt: Object.freeze({
-        name: 'msg-receipt',
-        description: 'Off-Chain message receipt',
+        name: ctnOffChainLib.OffChainData.type.msgReceipt.name,
+        description: ctnOffChainLib.OffChainData.type.msgReceipt.description,
         subDir: '/rcpt',
         filenamePrefix: 'rcpt-'
     })
