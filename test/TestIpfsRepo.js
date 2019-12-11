@@ -70,7 +70,7 @@ describe.only('IPFS Repository', function (done) {
 
     it.skip('should successfully save off-chain message data', function (done) {
         Future.task(function () {
-            CtnOCSvr.ipfsRepo.saveOffChainMsgData(Buffer.from('Simulated off-chain msg receipt #20'), IpfsRepo.offChainMsgDataType.msgEnvelope, '2019-11-22T15:25:11.283Z');
+            CtnOCSvr.ipfsRepo.saveOffChainMsgData(Buffer.from('Simulated off-chain msg receipt #20'), IpfsRepo.offChainMsgDataRepo.msgEnvelope, '2019-11-22T15:25:11.283Z');
             console.debug('>>>>>> ipfsRepo:', CtnOCSvr.ipfsRepo);
         }).resolve(done);
     });

@@ -63,7 +63,7 @@ export function saveOffChainMsgEnvelope(req, res, next) {
         }
 
         // Save off-chain message data onto IPFS repository
-        const saveResult = CtnOCSvr.ipfsRepo.saveOffChainMsgData(bufMsgEnvelope, IpfsRepo.offChainMsgDataType.msgEnvelope);
+        const saveResult = CtnOCSvr.ipfsRepo.saveOffChainMsgData(bufMsgEnvelope, IpfsRepo.offChainMsgDataRepo.msgEnvelope);
 
         res.send({
             status: 'success',

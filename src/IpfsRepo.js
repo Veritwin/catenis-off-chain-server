@@ -146,7 +146,7 @@ IpfsRepo.prototype.turnAutomationOff = function () {
     }
 };
 
-IpfsRepo.prototype.saveOffChainMsgData = function (data, dataType, refDate) {
+IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, refDate) {
     let result;
 
     // Execute code in critical section to serialize calls
@@ -159,7 +159,7 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, dataType, refDate) {
 
         // Build path according to reference date
         const basePath = cfgSettings.rootDir + IpfsRepo.repoSubtype.offChainMsgData.subDir
-            + mtRefDate.format(IpfsRepo.repoSubtype.offChainMsgData.pathFormat) + dataType.subDir + '/' + dataType.filenamePrefix
+            + mtRefDate.format(IpfsRepo.repoSubtype.offChainMsgData.pathFormat) + msgDataRepo.subDir + '/' + msgDataRepo.filenamePrefix
             + formatNumber(millisecondsInMinute(mtRefDate), 5);
 
         // Make sure that filename does not yet exists
@@ -482,7 +482,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                         let fileEntries;
 
                         try {
-                            fileEntries = this.ipfsClient.ls(path + IpfsRepo.offChainMsgDataType.msgEnvelope.subDir, false);
+                            fileEntries = this.ipfsClient.ls(path + IpfsRepo.offChainMsgDataRepo.msgEnvelope.subDir, false);
                         }
                         catch (err) {
                             if (err._ipfsError instanceof Error) {
@@ -523,8 +523,8 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                         docsRetrievedOffChainMsgDataToInsert.push({
                                             cid: fileEntry.hash,
                                             data: new mongodb.Binary(msgEnvelopeData),
-                                            dataType: IpfsRepo.offChainMsgDataType.msgEnvelope.name,
-                                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataType.msgEnvelope.filenamePrefix, fileEntry.name),
+                                            dataType: ctnOffChainLib.OffChainData.msgDataType.msgEnvelope.name,
+                                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgEnvelope.filenamePrefix, fileEntry.name),
                                             retrievedDate: repoRoot.refDate
                                         });
 
@@ -543,7 +543,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                         let fileEntries;
 
                         try {
-                            fileEntries = this.ipfsClient.ls(path + IpfsRepo.offChainMsgDataType.msgReceipt.subDir, false);
+                            fileEntries = this.ipfsClient.ls(path + IpfsRepo.offChainMsgDataRepo.msgReceipt.subDir, false);
                         }
                         catch (err) {
                             if (err._ipfsError instanceof Error) {
@@ -584,8 +584,8 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                         docsRetrievedOffChainMsgDataToInsert.push({
                                             cid: fileEntry.hash,
                                             data: new mongodb.Binary(msgReceiptData),
-                                            dataType: IpfsRepo.offChainMsgDataType.msgReceipt.name,
-                                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataType.msgReceipt.filenamePrefix, fileEntry.name),
+                                            dataType: ctnOffChainLib.OffChainData.msgDataType.msgReceipt.name,
+                                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgReceipt.filenamePrefix, fileEntry.name),
                                             retrievedDate: repoRoot.refDate
                                         });
 
@@ -752,16 +752,12 @@ IpfsRepo.repoSubtype = Object.freeze({
     })
 });
 
-IpfsRepo.offChainMsgDataType = Object.freeze({
+IpfsRepo.offChainMsgDataRepo = Object.freeze({
     msgEnvelope: Object.freeze({
-        name: ctnOffChainLib.OffChainData.type.msgEnvelope.name,
-        description: ctnOffChainLib.OffChainData.type.msgEnvelope.description,
         subDir: '/msg',
         filenamePrefix: 'msg-'
     }),
     msgReceipt: Object.freeze({
-        name: ctnOffChainLib.OffChainData.type.msgReceipt.name,
-        description: ctnOffChainLib.OffChainData.type.msgReceipt.description,
         subDir: '/rcpt',
         filenamePrefix: 'rcpt-'
     })
