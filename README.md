@@ -96,6 +96,21 @@ Success response body: a JSON containing the following keys:
 - `data.dataItems\[n\].retrievedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has been retrieved.
 - `data.hasMore`: \[Boolean\] Indicates whether there are more data items that satisfy the search criteria yet to be returned.
 
+### Get single off-chain message data
+
+Request: `GET /msg-data/:cid`
+
+URL parameters:
+- `cid`: \[String\] IPFS CID of the off-chain message data being requested.
+
+Success response body: a JSON containing the following keys:
+- `status`: \[String\] The value **'success'**.
+- `data.cid`: \[String\] IPFS CID of the off-chain message data.
+- `data.data`: \[String\] Off-Chain message data as a base64-encoded binary stream.
+- `data.dataType`: \[String\] Type of off-chain message data; either 'msg-envelope' or 'msg-receipt'.
+- `data.savedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has originally been saved.
+- `data.retrievedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has been retrieved.
+
 ## Client notification
 
 WebSocket connection endpoint: `/notify`

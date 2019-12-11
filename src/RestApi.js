@@ -21,6 +21,7 @@ import {ctnNode} from './CtnNode';
 import {saveOffChainMsgEnvelope} from './ApiSaveOffChainMsgEnvelope';
 import {saveOffChainMsgReceipt} from './ApiSaveOffChainMsgReceipt';
 import {getOffChainMsgData} from './ApiGetOffChainMsgData';
+import {getSingleOffChainMsgData} from './ApiGetSingleOffChainMsgData';
 import {upgradeClientNotification} from './ApiUpgradeClientNotification';
 
 // Config entries
@@ -60,6 +61,7 @@ export function RestApi(port, host) {
     this.apiServer.post('/msg-data/envelope', saveOffChainMsgEnvelope.bind(this));
     this.apiServer.post('/msg-data/receipt', saveOffChainMsgReceipt.bind(this));
     this.apiServer.get('/msg-data', getOffChainMsgData.bind(this));
+    this.apiServer.get('/msg-data/:cid', getSingleOffChainMsgData.bind(this));
     this.apiServer.get('/notify', upgradeClientNotification.bind(this));
 
     this.apiServer.listen(port, host, () => {

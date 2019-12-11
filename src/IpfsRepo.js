@@ -215,6 +215,20 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, dataType, refDate) {
     return result;
 };
 
+IpfsRepo.prototype.getRetriedOffChainMsgDataByCid = function (cid) {
+    const retDoc = CtnOCSvr.db.collection.RetrievedOffChainMsgData.findOne({cid: cid});
+
+    if (retDoc) {
+        return {
+            cid: retDoc.cid,
+            data: retDoc.data.buffer.toString('base64'),
+            dataType: retDoc.dataType,
+            savedDate: retDoc.savedDate,
+            retrievedDate: retDoc.retrievedDate
+        };
+    }
+};
+
 IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limit, skip) {
     const query = {};
     const options = {
