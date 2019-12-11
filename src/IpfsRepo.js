@@ -205,7 +205,7 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, dataType, refDate) {
 
         result = {
             cid: this.ipfsClient.filesStat(path, {hash: true}).hash,
-            sentDate: mtRefDate.toISOString()
+            savedDate: mtRefDate.toISOString()
         };
 
         // Retrieve updated repository root CID
