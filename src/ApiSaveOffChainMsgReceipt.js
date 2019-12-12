@@ -82,20 +82,20 @@ export function saveOffChainMsgReceipt(req, res, next) {
 
 function validateOffChainMsgReceipt(data) {
     if (typeof data === 'string') {
-        let ocMsgReceipt;
+        let msgReceipt;
         let bufData;
 
         try {
             bufData = Buffer.from(data, 'base64');
-            ocMsgReceipt = ctnOffChainLib.MessageReceipt.fromBuffer(bufData);
+            msgReceipt = ctnOffChainLib.MessageReceipt.fromBuffer(bufData);
         }
         catch (err) {
             CtnOCSvr.logger.DEBUG('saveOffChainMsgReceipt: `data` body parameter is not a valid Catenis off-chain message receipt');
         }
 
-        if (ocMsgReceipt) {
-            if (ocMsgReceipt.isSigned()) {
-                if (ocMsgReceipt.verifySignature()) {
+        if (msgReceipt) {
+            if (msgReceipt.isSigned) {
+                if (msgReceipt.verifySignature()) {
                     return bufData;
                 }
                 else {

@@ -82,20 +82,20 @@ export function saveOffChainMsgEnvelope(req, res, next) {
 
 function validateOffChainMsgEnvelope(data) {
     if (typeof data === 'string') {
-        let ocMsgEnvelope;
+        let msgEnvelope;
         let bufData;
 
         try {
             bufData = Buffer.from(data, 'base64');
-            ocMsgEnvelope = ctnOffChainLib.MessageEnvelope.fromBuffer(bufData);
+            msgEnvelope = ctnOffChainLib.MessageEnvelope.fromBuffer(bufData);
         }
         catch (err) {
             CtnOCSvr.logger.DEBUG('saveOffChainMsgEnvelope: `data` body parameter is not a valid Catenis off-chain message envelope');
         }
 
-        if (ocMsgEnvelope) {
-            if (ocMsgEnvelope.isSigned()) {
-                if (ocMsgEnvelope.verifySignature()) {
+        if (msgEnvelope) {
+            if (msgEnvelope.isSigned) {
+                if (msgEnvelope.verifySignature()) {
                     return bufData;
                 }
                 else {
