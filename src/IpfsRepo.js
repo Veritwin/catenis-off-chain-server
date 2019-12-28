@@ -21,6 +21,7 @@ import ctnOffChainLib from 'catenis-off-chain-lib';
 import {CtnOCSvr} from './CtnOffChainSvr';
 import {CriticalSection} from './CriticalSection';
 import {formatNumber} from './Util';
+import {ctnNode} from './CtnNode';
 
 // Config entries
 const ipfsRepoConfig = config.get('ipfsRepo');
@@ -44,6 +45,10 @@ export function IpfsRepo(ipfsClient) {
 
     // Critical section object used to serialize save data requests
     this.saveCS = new CriticalSection();
+    
+    // Critical section object used to serialize retrieval of off-chain
+    //  message data from local Catenis node's IPFS repository
+    this.retrieveLocalOCMsgDataCS = new CriticalSection();
 
     try {
         initRootCid.call(this);
@@ -58,6 +63,11 @@ export function IpfsRepo(ipfsClient) {
     this.boundRetrieveOffChainMsgData = retrieveOffChainMsgData.bind(this);
     this.futTurnAutomationOff = undefined;
     this.automationOn = false;
+
+    this.boundRetrieveOffChainMsgDataImmediately = retrieveOffChainMsgDataImmediately.bind(this);
+    this.futEndImmediateRetrieval  = undefined;
+    this.doingImmediateOCMsgDataRetrieval = false;
+    this.retrieveOCMsgDataImmediatedlyAgain = false;
 
     if (!CtnOCSvr.app.isTest) {
         this.turnAutomationOn();
@@ -127,6 +137,14 @@ IpfsRepo.prototype.turnAutomationOff = function () {
             this.futTurnAutomationOff = undefined;
         }
 
+        if (this.doingImmediateOCMsgDataRetrieval) {
+            // Doing immediate retrieval of off-chain message data. Wait for it to finish
+            this.futEndImmediateRetrieval = new Future();
+
+            this.futEndImmediateRetrieval.wait();
+            this.futEndImmediateRetrieval = undefined;
+        }
+
         saveRootCid.call(this, (err) => {
             if (err) {
                 CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS (during automation turnoff).', err);
@@ -146,7 +164,7 @@ IpfsRepo.prototype.turnAutomationOff = function () {
     }
 };
 
-IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, refDate) {
+IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveImmediately = false, refDate) {
     let result;
 
     // Execute code in critical section to serialize calls
@@ -210,6 +228,10 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, refDate) {
 
         // Retrieve updated repository root CID
         this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).hash;
+
+        if (retrieveImmediately) {
+            process.nextTick(this.boundRetrieveOffChainMsgDataImmediately)
+        }
     });
 
     return result;
@@ -436,12 +458,46 @@ function retrieveRootCids(callback) {
     }
 }
 
-function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
-    try {
-        if (typeof ctnNodeIdx !== 'number') {
-            ctnNodeIdx = Number.parseInt(ctnNodeIdx);
-        }
+function retrieveOffChainMsgDataImmediately() {
+    if (!this.doingImmediateOCMsgDataRetrieval) {
+        CtnOCSvr.logger.TRACE('Executing procedure to retrieve off-chain message data immediately');
+        this.doingImmediateOCMsgDataRetrieval = true;
 
+        // Make sure that code runs in its own fiber
+        Future.task(() => {
+            retrieveOffChainMsgData.call(this, {cid: this.rootCid, refDate: new Date()}, ctnNode.index);
+        }).resolve((err) => {
+            this.doingImmediateOCMsgDataRetrieval = false;
+
+            if (err) {
+                CtnOCSvr.logger.ERROR('Error while retrieving off-chain message data immediately.', err);
+            }
+
+            if (this.futEndImmediateRetrieval) {
+                this.retrieveOCMsgDataImmediatedlyAgain = false;
+
+                this.futEndImmediateRetrieval.return();
+            }
+            else if (this.retrieveOCMsgDataImmediatedlyAgain) {
+                this.retrieveOCMsgDataImmediatedlyAgain = false;
+
+                process.nextTick(this.boundRetrieveOffChainMsgDataImmediately);
+            }
+        });
+    }
+    else {
+        this.retrieveOCMsgDataImmediatedlyAgain = true;
+    }
+}
+
+function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
+    if (typeof ctnNodeIdx !== 'number') {
+        ctnNodeIdx = Number.parseInt(ctnNodeIdx);
+    }
+
+    let innerCallback = callback;
+
+    const doRetrieval = () => {
         const docIpfsRepoScan = CtnOCSvr.db.collection.IpfsRepoScan.findOne({
             ctnNodeIdx: ctnNodeIdx,
             repoSubtype: IpfsRepo.repoSubtype.offChainMsgData.name
@@ -601,7 +657,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                 ], cb1);
             }, (err) => {
                 if (err) {
-                    callback(err);
+                    innerCallback(err);
                 }
                 else {
                     async.parallel([
@@ -664,16 +720,49 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                 cb1();
                             }
                         }
-                    ], callback);
+                    ], innerCallback);
                 }
             });
         }
         else {
-            process.nextTick(callback);
+            process.nextTick(innerCallback);
+        }
+    };
+
+    if (ctnNodeIdx === ctnNode.index) {
+        // Local Catenis node
+        let error;
+
+        try {
+            // Execute code in critical section to serialize retrieval
+            this.retrieveLocalOCMsgDataCS.execute(() => {
+                const fut = new Future();
+                innerCallback = fut.resolver();
+
+                doRetrieval();
+
+                fut.wait();
+            });
+        }
+        catch (err) {
+            error = err;
+        }
+
+        if (typeof callback === 'function') {
+            callback(error);
+        }
+        else if (error) {
+            throw error;
         }
     }
-    catch (err) {
-        process.nextTick(callback, err);
+    else {
+        // Any other Catenis node. Just do retrieval directly
+        try {
+            doRetrieval();
+        }
+        catch (err) {
+            process.nextTick(callback, err);
+        }
     }
 }
 

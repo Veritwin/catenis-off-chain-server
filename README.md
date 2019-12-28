@@ -55,6 +55,7 @@ Request: `POST /msg-data/envelope`
 
 Request body: a JSON object containing the following keys:
 - `data`: \[String\] Off-Chain message envelope data as a base64-encoded binary stream.
+- `immediateRetrieval`: \[Boolean\] (optional, default: false) Indicates whether saved off-chain message envelope should be immediately retrieved
 
 Success response body: a JSON containing the following keys:
 - `status`: \[String\] The value **'success'**.
@@ -67,6 +68,7 @@ Request: `POST /msg-data/receipt`
 
 Request body: a JSON object containing the following keys:
 - `data`: \[String\] Off-Chain message receipt data as a base64-encoded binary stream.
+- `immediateRetrieval`: \[Boolean\] (optional, default: false) Indicates whether saved off-chain message receipt should be immediately retrieved
 
 Success response body: a JSON containing the following keys:
 - `status`: \[String\] The value **'success'**.

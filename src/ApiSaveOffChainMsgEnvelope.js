@@ -25,7 +25,9 @@ import {IpfsRepo} from './IpfsRepo';
 // Method used to process POST '/msg-data/envelope' endpoint of REST API
 //
 //  JSON payload: {
-//    "data': [String] Off-Chain message envelope data as a base64-encoded binary stream
+//    "data': [String], Off-Chain message envelope data as a base64-encoded binary stream
+//    "immediateRetrieval": [Boolean] (optional, default: false) Indicates whether saved off-chain message envelope
+//                                     should be immediately retrieved
 //  }
 //
 //  Success data returned: {
@@ -62,8 +64,10 @@ export function saveOffChainMsgEnvelope(req, res, next) {
             return new resError.BadRequestError('Missing or invalid body parameters');
         }
 
+        const retrieveImmediately = !!req.body.immediateRetrieval;
+
         // Save off-chain message data onto IPFS repository
-        const saveResult = CtnOCSvr.ipfsRepo.saveOffChainMsgData(bufMsgEnvelope, IpfsRepo.offChainMsgDataRepo.msgEnvelope);
+        const saveResult = CtnOCSvr.ipfsRepo.saveOffChainMsgData(bufMsgEnvelope, IpfsRepo.offChainMsgDataRepo.msgEnvelope, retrieveImmediately);
 
         res.send({
             status: 'success',
