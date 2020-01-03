@@ -54,10 +54,12 @@ Each Catenis node is assigned an SSH RSA key pair for signing the HTTP requests.
 Request: `POST /msg-data/envelope`
 
 Request body: a JSON object containing the following keys:
+
 - `data`: \[String\] Off-Chain message envelope data as a base64-encoded binary stream.
 - `immediateRetrieval`: \[Boolean\] (optional, default: false) Indicates whether saved off-chain message envelope should be immediately retrieved
 
 Success response body: a JSON containing the following keys:
+
 - `status`: \[String\] The value **'success'**.
 - `data.cid`: \[String\] IPFS CID of the saved off-chain message envelope.
 - `data.savedDate`: \[String\] ISO-8601 formatted date and time when off-chain message envelope has been saved.
@@ -67,10 +69,12 @@ Success response body: a JSON containing the following keys:
 Request: `POST /msg-data/receipt`
 
 Request body: a JSON object containing the following keys:
+
 - `data`: \[String\] Off-Chain message receipt data as a base64-encoded binary stream.
 - `immediateRetrieval`: \[Boolean\] (optional, default: false) Indicates whether saved off-chain message receipt should be immediately retrieved
 
 Success response body: a JSON containing the following keys:
+
 - `status`: \[String\] The value **'success'**.
 - `data.cid`: \[String\] IPFS CID of the saved off-chain message receipt.
 - `data.savedDate`: \[String\] ISO-8601 formatted date and time when off-chain message receipt has been saved.
@@ -80,6 +84,7 @@ Success response body: a JSON containing the following keys:
 Request: `GET /msg-data`
 
 Query string (optional) parameters:
+
 - `retrievedAfter`: \[String\] ISO-8601 formatted date and time used to filter off-chain message data items that should
  be returned. Only off-chain message data items that have been retrieved after this date should be returned.
 - `limit`: \[Number\] (default: 500) Maximum number of data items that should be returned.
@@ -89,6 +94,7 @@ Query string (optional) parameters:
  of the configuration files.
 
 Success response body: a JSON containing the following keys:
+
 - `status`: \[String\] The value **'success'**.
 - `data.dataItems`: \[Array\] List of Catenis off-chain data info objects.
 - `data.dataItems\[n\].cid`: \[String\] IPFS CID of the off-chain message data.
@@ -103,9 +109,11 @@ Success response body: a JSON containing the following keys:
 Request: `GET /msg-data/:cid`
 
 URL parameters:
+
 - `cid`: \[String\] IPFS CID of the off-chain message data being requested.
 
 Success response body: a JSON containing the following keys:
+
 - `status`: \[String\] The value **'success'**.
 - `data.cid`: \[String\] IPFS CID of the off-chain message data.
 - `data.data`: \[String\] Off-Chain message data as a base64-encoded binary stream.
