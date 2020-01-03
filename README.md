@@ -97,11 +97,11 @@ Success response body: a JSON containing the following keys:
 
 - `status`: \[String\] The value **'success'**.
 - `data.dataItems`: \[Array\] List of Catenis off-chain data info objects.
-- `data.dataItems\[n\].cid`: \[String\] IPFS CID of the off-chain message data.
-- `data.dataItems\[n\].data`: \[String\] Off-Chain message data as a base64-encoded binary stream.
-- `data.dataItems\[n\].dataType`: \[String\] Type of off-chain message data; either 'msg-envelope' or 'msg-receipt'.
-- `data.dataItems\[n\].savedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has originally been saved.
-- `data.dataItems\[n\].retrievedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has been retrieved.
+- `data.dataItems[n].cid`: \[String\] IPFS CID of the off-chain message data.
+- `data.dataItems[n].data`: \[String\] Off-Chain message data as a base64-encoded binary stream.
+- `data.dataItems[n].dataType`: \[String\] Type of off-chain message data; either 'msg-envelope' or 'msg-receipt'.
+- `data.dataItems[n].savedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has originally been saved.
+- `data.dataItems[n].retrievedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has been retrieved.
 - `data.hasMore`: \[Boolean\] Indicates whether there are more data items that satisfy the search criteria yet to be returned.
 
 ### Get single off-chain message data
