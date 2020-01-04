@@ -576,11 +576,15 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                     }
                                     else {
                                         // Save retrieved off-chain message envelope
+                                        const savedDate = dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgEnvelope.filenamePrefix, fileEntry.name);
+
                                         docsRetrievedOffChainMsgDataToInsert.push({
+                                            ctnNodeIdx: ctnNodeIdx,
                                             cid: fileEntry.hash,
                                             data: new mongodb.Binary(msgEnvelopeData),
                                             dataType: ctnOffChainLib.OffChainData.msgDataType.msgEnvelope.name,
-                                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgEnvelope.filenamePrefix, fileEntry.name),
+                                            savedDate: savedDate.date,
+                                            savedMicroseconds: savedDate.microseconds,
                                             retrievedDate: repoRoot.refDate
                                         });
 
@@ -637,11 +641,15 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                     }
                                     else {
                                         // Save retrieved off-chain message receipt
+                                        const savedDate = dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgReceipt.filenamePrefix, fileEntry.name);
+
                                         docsRetrievedOffChainMsgDataToInsert.push({
+                                            ctnNodeIdx: ctnNodeIdx,
                                             cid: fileEntry.hash,
                                             data: new mongodb.Binary(msgReceiptData),
                                             dataType: ctnOffChainLib.OffChainData.msgDataType.msgReceipt.name,
-                                            savedDate: dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgReceipt.filenamePrefix, fileEntry.name),
+                                            savedDate: savedDate.date,
+                                            savedMicroseconds: savedDate.microseconds,
                                             retrievedDate: repoRoot.refDate
                                         });
 
@@ -663,13 +671,40 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                     async.parallel([
                         (cb1) => {
                             if (docsRetrievedOffChainMsgDataToInsert.length > 0) {
-                                CtnOCSvr.db.collection.RetrievedOffChainMsgData.insertMany(docsRetrievedOffChainMsgDataToInsert, (err, result) => {
+                                CtnOCSvr.db.collection.RetrievedOffChainMsgData.insertMany(docsRetrievedOffChainMsgDataToInsert, {ordered: false}, (err, result) => {
+                                    let docsInserted = false;
+                                    let errorReturned = false;
+
                                     if (err) {
-                                        cb1(err);
+                                        if (err.name !== 'BulkWriteError') {
+                                            errorReturned = true;
+                                            cb1(err);
+                                        }
+                                        else {
+                                            docsInserted = err.result.nInserted > 0;
+
+                                            err.result.getWriteErrors().forEach(writeError => {
+                                                if (writeError.code === 11000) {
+                                                    // Duplicate key error. Log warning condition
+                                                    CtnOCSvr.logger.WARN('Retrieved off-chain message data already inserted onto local database.', writeError);
+                                                }
+                                                else {
+                                                    // Any other error. Log error condition
+                                                    CtnOCSvr.logger.ERROR('Error trying to insert retrieved off-chain message data onto local database.', writeError);
+                                                }
+                                            });
+                                        }
                                     }
                                     else {
+                                        docsInserted = result.insertedCount > 0;
+                                    }
+
+                                    if (docsInserted) {
                                         // Notify clients that new off-chain message data has been retrieved
                                         CtnOCSvr.clientNotifier.notifyNewOffChainMsgData();
+                                    }
+
+                                    if (!errorReturned) {
                                         cb1();
                                     }
                                 });
@@ -897,7 +932,10 @@ function millisecondsInMinute(mt) {
 }
 
 function dateFromPath(pathParts, filePrefix, filename) {
-    return moment.utc(pathParts).add(Number.parseInt(filename.substring(filePrefix.length, filename.length - 3)), 'ms').toDate();
+    return {
+        date: moment.utc(pathParts).add(Number.parseInt(filename.substring(filePrefix.length, filename.length - 3)), 'ms').toDate(),
+        microseconds: Number.parseInt(filename.substring(filename.length - 3))
+    };
 }
 
 

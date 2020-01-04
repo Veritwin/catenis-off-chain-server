@@ -198,6 +198,18 @@ Database.initialize = function() {
         RetrievedOffChainMsgData: {
             indices: [{
                 fields: {
+                    ctnNodeIdx: 1,
+                    dataType: 1,
+                    savedDate: 1,
+                    savedMicroseconds: 1
+                },
+                opts: {
+                    unique: true,
+                    background: true,
+                    w: 1
+                }
+            }, {
+                fields: {
                     cid: 1
                 },
                 opts: {
