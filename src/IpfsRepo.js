@@ -426,6 +426,7 @@ function retrieveRootCids(callback) {
 
             if (ipfsRepoRootCids) {
                 CtnOCSvr.logger.TRACE('About to retrieve off-chain message data from updated IPFS repositories');
+                CtnOCSvr.logger.DEBUG('>>>>>> [retrieveRootCids] IPFS repo root CIDs updated since %s (last retrieval date: %s)', updatedSince, CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate, ipfsRepoRootCids);
                 // Add reference date to each returned repo root
                 Object.values(ipfsRepoRootCids).forEach(repoRoot => repoRoot.refDate = refDate);
 
@@ -511,6 +512,13 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
         const lastScannedPath = docIpfsRepoScan ? docIpfsRepoScan.lastScannedPath : undefined;
         const scannedPaths = scanRepoPath.call(this, IpfsRepo.repoSubtype.offChainMsgData, repoRoot.cid, lastScannedPath);
+        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Paths to scan', {
+            repoRoot,
+            ctnNodeIdx,
+            lastScannedPath,
+            lastScannedFiles: docIpfsRepoScan ? docIpfsRepoScan.lastScannedFiles : undefined,
+            scannedPaths
+        });
 
         if (scannedPaths.length > 0) {
             const subtypeRootPath = repoRoot.cid + IpfsRepo.repoSubtype.offChainMsgData.subDir;
@@ -558,8 +566,16 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
                         // noinspection DuplicatedCode
                         if (fileEntries) {
+                            CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Scanned off-chain message envelope files', {
+                                path: path + IpfsRepo.offChainMsgDataRepo.msgEnvelope.subDir,
+                                fileEntries
+                            });
                             if (idx === 0 && lastScannedOffChainMsgEnvelope) {
                                 fileEntries = fileEntries.filter(fileEntry => fileEntry.name > lastScannedOffChainMsgEnvelope);
+                                CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Filtered off-chain message envelope files', {
+                                    lastScannedOffChainMsgEnvelope,
+                                    fileEntries
+                                });
                             }
 
                             const maxFileEntriesIdx = fileEntries.length - 1;
@@ -586,6 +602,9 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                             savedDate: savedDate.date,
                                             savedMicroseconds: savedDate.microseconds,
                                             retrievedDate: repoRoot.refDate
+                                        });
+                                        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Retrieved off-chain message envelope', {
+                                            offChainMsgEnvelope: docsRetrievedOffChainMsgDataToInsert[docsRetrievedOffChainMsgDataToInsert.length - 1]
                                         });
 
                                         cb3();
@@ -623,8 +642,16 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
                         // noinspection DuplicatedCode
                         if (fileEntries) {
+                            CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Scanned off-chain message receipt files', {
+                                path: path + IpfsRepo.offChainMsgDataRepo.msgReceipt.subDir,
+                                fileEntries
+                            });
                             if (idx === 0 && lastScannedOffChainMsgReceipt) {
                                 fileEntries = fileEntries.filter(fileEntry => fileEntry.name > lastScannedOffChainMsgReceipt);
+                                CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Filtered off-chain message receipt files', {
+                                    lastScannedOffChainMsgReceipt,
+                                    fileEntries
+                                });
                             }
 
                             const maxFileEntriesIdx = fileEntries.length - 1;
@@ -651,6 +678,9 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                             savedDate: savedDate.date,
                                             savedMicroseconds: savedDate.microseconds,
                                             retrievedDate: repoRoot.refDate
+                                        });
+                                        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Retrieved off-chain message receipt', {
+                                            offChainMsgEnvelope: docsRetrievedOffChainMsgDataToInsert[docsRetrievedOffChainMsgDataToInsert.length - 1]
                                         });
 
                                         cb3();
@@ -701,6 +731,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
                                     if (docsInserted) {
                                         // Notify clients that new off-chain message data has been retrieved
+                                        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] About to send notification of new off-chain message data');
                                         CtnOCSvr.clientNotifier.notifyNewOffChainMsgData();
                                     }
 
@@ -729,6 +760,15 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                             }
                                         }
                                     }, cb1);
+                                    CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Saved last scanned info', {
+                                        lastScannedPath: scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length),
+                                        lastScannedFiles: {
+                                            offChainMsgData: {
+                                                envelope: lastMsgEnvelope,
+                                                receipt: lastMsgReceipt
+                                            }
+                                        }
+                                    });
                                 }
                                 else {
                                     // Update IPFS repo scan database doc
@@ -775,6 +815,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                         }, {
                                             $set: fieldsToUpdate
                                         }, cb1);
+                                        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Updated last scanned info', fieldsToUpdate);
                                     }
                                     else {
                                         CtnOCSvr.logger.WARN('No fields to be updated for last scanned info', {
