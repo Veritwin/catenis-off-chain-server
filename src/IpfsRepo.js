@@ -697,23 +697,59 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                 }
                                 else {
                                     // Update IPFS repo scan database doc
-                                    const fieldsToUpdate = {
-                                        lastScannedPath: scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length)
-                                    };
+                                    const fieldsToUpdate = {};
+                                    const actualLastScannedPath = scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length);
 
-                                    if (lastMsgEnvelope !== lastScannedOffChainMsgEnvelope) {
-                                        fieldsToUpdate['lastScannedFiles.offChainMsgData.envelope'] = lastMsgEnvelope;
+                                    if (actualLastScannedPath === lastScannedPath) {
+                                        // Last scanned path did not change
+                                        if (scannedPaths.length !== 1) {
+                                            CtnOCSvr.logger.WARN('Last scanned path that did not change is NOT the first scanned', {
+                                                scannedPaths,
+                                                lastScannedPath
+                                            });
+                                        }
+
+                                        // Check for data file changes
+                                        if (lastMsgEnvelope && lastMsgEnvelope !== lastScannedOffChainMsgEnvelope) {
+                                            fieldsToUpdate['lastScannedFiles.offChainMsgData.envelope'] = lastMsgEnvelope;
+                                        }
+
+                                        if (lastMsgReceipt && lastMsgReceipt !== lastScannedOffChainMsgReceipt) {
+                                            fieldsToUpdate['lastScannedFiles.offChainMsgData.receipt'] = lastMsgReceipt;
+                                        }
                                     }
+                                    else {
+                                        // A new last scanned path
+                                        if (scannedPaths.length === 1) {
+                                            CtnOCSvr.logger.WARN('New last scanned path is the FIRST scanned path', {
+                                                scannedPaths,
+                                                lastScannedPath,
+                                                actualLastScannedPath
+                                            });
+                                        }
 
-                                    if (lastMsgReceipt !== lastScannedOffChainMsgReceipt) {
+                                        // Update path and data files as well
+                                        fieldsToUpdate.lastScannedPath = actualLastScannedPath;
+                                        fieldsToUpdate['lastScannedFiles.offChainMsgData.envelope'] = lastMsgEnvelope;
                                         fieldsToUpdate['lastScannedFiles.offChainMsgData.receipt'] = lastMsgReceipt;
                                     }
 
-                                    CtnOCSvr.db.collection.IpfsRepoScan.updateOne({
-                                        _id: docIpfsRepoScan._id
-                                    }, {
-                                        $set: fieldsToUpdate
-                                    }, cb1);
+                                    if (Object.keys(fieldsToUpdate).length > 0) {
+                                        CtnOCSvr.db.collection.IpfsRepoScan.updateOne({
+                                            _id: docIpfsRepoScan._id
+                                        }, {
+                                            $set: fieldsToUpdate
+                                        }, cb1);
+                                    }
+                                    else {
+                                        CtnOCSvr.logger.WARN('No fields to be updated for last scanned info', {
+                                            lastScannedPath,
+                                            lastMsgEnvelope,
+                                            lastMsgReceipt,
+                                            lastScannedOffChainMsgEnvelope,
+                                            lastScannedOffChainMsgReceipt
+                                        });
+                                    }
                                 }
                             }
                             else {
