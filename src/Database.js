@@ -195,6 +195,44 @@ Database.initialize = function() {
                 }
             }]
         },
+        SavedOffChainMsgData: {
+            indices: [{
+                fields: {
+                    dataType: 1,
+                    savedDate: 1,
+                    savedMicroseconds: 1
+                },
+                opts: {
+                    unique: true,
+                    background: true,
+                    w: 1
+                }
+            }, {
+                fields: {
+                    cid: 1
+                },
+                opts: {
+                    background: true,
+                    w: 1
+                }
+            }, {
+                fields: {
+                    dataType: 1
+                },
+                opts: {
+                    background: true,
+                    w: 1
+                }
+            }, {
+                fields: {
+                    savedDate: 1
+                },
+                opts: {
+                    background: true,
+                    w: 1
+                }
+            }]
+        },
         RetrievedOffChainMsgData: {
             indices: [{
                 fields: {

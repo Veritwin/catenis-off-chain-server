@@ -19,6 +19,15 @@ IpfsRepoScan {
   }
 }
 
+SavedOffChainMsgData {
+  _id: [object],  // MongoDB internal document ID
+  cid: [string],  // IPFS CID of off-chain message data
+  data: [binary],  // Off-Chain message data as a binary stream
+  dataType: [string],  // The type of the off-chain message data; either 'msg-envelope' or 'msg-receipt' (from ctnOffChainLib.OffChainData.msgDataType)
+  savedDate: [date/time],  // Date and time when off-chain message data has been saved
+  savedMicroseconds: [number]  // Microseconds (counter) component of saved date (used to differentiate off-chain message data saved within the save millisecond)
+}
+
 RetrievedOffChainMsgData {
   _id: [object],  // MongoDB internal document ID
   ctnNodeIdx: [number],  // The index of the Catenis node the IPFS repository of which this off-chain message data has been retrieved from

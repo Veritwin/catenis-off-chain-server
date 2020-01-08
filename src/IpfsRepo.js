@@ -226,6 +226,17 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
             savedDate: mtRefDate.toISOString()
         };
 
+        // Store saved off-chain message data (asynchronously)
+        CtnOCSvr.db.collection.SavedOffChainMsgData.insertOne({
+            cid: result.cid,
+            data: new mongodb.Binary(data),
+            dataType: msgDataRepo === IpfsRepo.offChainMsgDataRepo.msgEnvelope ? ctnOffChainLib.OffChainData.msgDataType.msgEnvelope.name : ctnOffChainLib.OffChainData.msgDataType.msgReceipt.name,
+            savedDate: mtRefDate.toDate(),
+            savedMicroseconds: microSecs
+        }, (err) => {
+            CtnOCSvr.logger.ERROR('Error trying to insert saved off-chain message data onto local database.', err);
+        });
+
         // Retrieve updated repository root CID
         this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).hash;
 
@@ -237,8 +248,14 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
     return result;
 };
 
-IpfsRepo.prototype.getRetriedOffChainMsgDataByCid = function (cid) {
-    const retDoc = CtnOCSvr.db.collection.RetrievedOffChainMsgData.findOne({cid: cid});
+IpfsRepo.prototype.getRetriedOffChainMsgDataByCid = function (cid, includeSavedOnly = false) {
+    let retDoc = CtnOCSvr.db.collection.RetrievedOffChainMsgData.findOne({cid: cid});
+
+    if (!retDoc && includeSavedOnly) {
+        // No off-chain message data with the given CID has been retrieved yet. Try
+        //  looking for off-chain message data saved by this Catenis node
+        retDoc = CtnOCSvr.db.collection.SavedOffChainMsgData.findOne({cid: cid});
+    }
 
     if (retDoc) {
         return {

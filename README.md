@@ -108,6 +108,10 @@ Success response body: a JSON containing the following keys:
 
 Request: `GET /msg-data/:cid`
 
+Query string (optional) parameters:
+
+- `includeSavedOnly`: \[Boolean\] (default: false) Indicates whether it should also look for off-chain message data that have been saved (by this Catenis node) but not yet retrieved.
+
 URL parameters:
 
 - `cid`: \[String\] IPFS CID of the off-chain message data being requested.
@@ -119,7 +123,8 @@ Success response body: a JSON containing the following keys:
 - `data.data`: \[String\] Off-Chain message data as a base64-encoded binary stream.
 - `data.dataType`: \[String\] Type of off-chain message data; either 'msg-envelope' or 'msg-receipt'.
 - `data.savedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has originally been saved.
-- `data.retrievedDate`: \[String\] ISO-8601 formatted date and time when off-chain message data has been retrieved.
+- `data.retrievedDate`: \[String\] (optional) ISO-8601 formatted date and time when off-chain message data has been retrieved.
+ This field will not be returned if `includeSavedOnly` query string parameter is true and off-chain message data is not yet retrieved.
 
 ## Client notification
 

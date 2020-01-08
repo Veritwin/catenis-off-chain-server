@@ -33,6 +33,10 @@ export const cfgSettings = {
 
 // Method used to process GET '/msg-data/:cid' endpoint of REST API
 //
+//  Query string (optional) parameters:
+//    includeSavedOnly [Boolean] (default: false) Indicates whether it should also look for off-chain message data that
+//                                have been saved (by this Catenis node) but not yet retrieved
+//
 //  URL parameters:
 //    cid [String] - IPFS CID of the off-chain message data being requested
 //
@@ -43,7 +47,8 @@ export const cfgSettings = {
 //      "data": [String], Off-Chain message data as a base64-encoded binary stream
 //      "dataType": [String], Type of off-chain message data; either 'msg-envelope' or 'msg-receipt'
 //      "savedDate": [String], ISO-8601 formatted date and time when off-chain message data has originally been saved
-//      "retrievedDate": [String], ISO-8601 formatted date and time when off-chain message data has been retrieved
+//      "retrievedDate": [String] (optional) ISO-8601 formatted date and time when off-chain message data has been retrieved.
+//                                 Note that this field will not be returned if 'includeSavedOnly' is true and off-chain message data is not yet retrieved.
 //    }
 //  }
 //
@@ -62,7 +67,7 @@ export function getSingleOffChainMsgData(req, res, next) {
             return new resError.BadRequestError('Missing or invalid request parameters');
         }
 
-        const msgData = CtnOCSvr.ipfsRepo.getRetriedOffChainMsgDataByCid(req.params.cid);
+        const msgData = CtnOCSvr.ipfsRepo.getRetriedOffChainMsgDataByCid(req.params.cid, req.params.includeSavedOnly);
 
         if (msgData) {
             res.send({
@@ -87,10 +92,29 @@ export function getSingleOffChainMsgData(req, res, next) {
 function checkRequestParams(req) {
     let valid = true;
 
+    if (req.params.includeSavedOnly) {
+        const val = parseBoolean(req.params.includeSavedOnly);
+
+        if (val !== null) {
+            req.params.includeSavedOnly = val;
+        }
+        else {
+            CtnOCSvr.logger.DEBUG('getSingleOffChainMsgData: invalid `includeSavedOnly` query parameter [%s]', req.params.includeSavedOnly);
+            valid = false;
+        }
+    }
+    else {
+        req.params.includeSavedOnly = false;
+    }
+
     if (!req.params.cid || req.params.cid.length === 0) {
         CtnOCSvr.logger.DEBUG('getSingleOffChainMsgData: missing `cid` request parameter');
         valid = false;
     }
 
     return valid;
+}
+
+function parseBoolean(val) {
+    return typeof val !== 'string' ? null : (val === '1' || val.toLowerCase() === 'true' ? true : (val === '0' || val.toLowerCase() === 'false' ? false : null));
 }
