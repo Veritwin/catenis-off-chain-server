@@ -12,6 +12,8 @@ import util from 'util';
 // Third-party node modules
 import config from 'config';
 import ipfsHttpClient from 'ipfs-http-client';
+import callbackify from 'callbackify';
+const ipfsHttpClientConfigure = require('ipfs-http-client/src/lib/configure');
 
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -33,11 +35,12 @@ const cfgSettings = {
 
 // IpfsClient function class
 export function IpfsClient(host, port, protocol) {
-    this.ipfs = ipfsHttpClient({
+    this.ipfsClientConfig = {
         host: host,
         port: port,
         protocol: protocol
-    });
+    };
+    this.ipfs = ipfsHttpClient(this.ipfsClientConfig);
 
     addMissingIpfsMethods.call(this);
 
@@ -208,24 +211,25 @@ function addMissingIpfsMethods() {
 }
 
 function addMissingPinUpdateMethod() {
-    this.ipfs.pin.update = ((send) => {
-        return function (hash1, hash2, opts, callback) {
-            if (typeof opts === 'function') {
-                callback = opts;
-                opts = null;
-            }
-            send({
-                path: 'pin/update',
-                args: [hash1, hash2],
-                qs: opts
-            }, (err, res) => {
-                if (err) {
-                    return callback(err)
-                }
-                callback(null, res.Pins.map((hash) => ({ hash: hash })))
-            })
-        };
-    })(this.ipfs.send);
+    this.ipfs.pin.update = callbackify.variadic(ipfsHttpClientConfigure(({ ky }) => {
+        return async (hash1, hash2, options) => {
+            options = options || {};
+
+            const searchParams = new URLSearchParams(options.searchParams);
+            searchParams.set('arg', `${hash1}`);
+            searchParams.append('arg', `${hash2}`);
+            if (options.unpin != null) searchParams.set('unpin', options.unpin ? 'true' : 'false');
+
+            const res = await ky.post('pin/update', {
+                timeout: options.timeout,
+                signal: options.signal,
+                headers: options.headers,
+                searchParams
+            }).json();
+
+            return (res.Pins || []).map(hash => ({ hash }));
+        }
+    })(this.ipfsClientConfig));
 }
 
 
