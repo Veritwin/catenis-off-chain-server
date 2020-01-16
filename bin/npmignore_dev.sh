@@ -17,4 +17,4 @@ if [ "$1" == "reset" ]; then
 fi
 
 # Modify .npmignore file to exclude config files used for development
-cp .npmignore .npmignore.orig && grep -v "^/config/\*development\*\.json5$" .npmignore.orig > .npmignore
+cp .npmignore .npmignore.orig && grep -v "^/config/\*development\*\.json5$" .npmignore.orig > .npmignore && echo "/config/*sandbox*.json5" >> .npmignore
