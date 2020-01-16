@@ -12,6 +12,36 @@ npm i
 npm run build
 ```
 
+## Deploying the application
+
+To deploy the application, issue the command:
+
+```shell
+npm run predeploy
+```
+
+A tarball named `catenis-off-chain-server-<version>.tgz` is written to the `dist` subdirectory.
+
+> **Note**: if deploying the application for a development environment, use the `predeploy-dev` npm script instead (i.e.,
+ `npm run predeploy-dev`). In that case, the tarball is written to the `dist/dev` subdirectory.
+
+Copy the tarball to the target host and extract its contents, renaming the top-level directory of the extracted contents
+ from `package` to `CtnOCSvr`.
+
+```shell
+tar -xzf catenis-off-chain-server-<version>.tgz && mv package CtnOCSvr
+```
+
+Then change to the top-level directory of the extracted contents (i.e., `cd CtnOCSvr`), and issue the following commands:
+
+```shell
+nvm use
+npm i
+```
+
+> **Note**: optionally append `-g` to the npm install command (i.e., `npm i -g`) to install the application as a global
+ Node.js package. In that case, to execute the application, just issue the command `ctnocsvr`.
+
 ## Starting the application
 
 To start the application, issue the following command:
@@ -27,6 +57,8 @@ env NODE_CONFIG_ENV='<environment>' MONGO_URL='mongodb://<host>[:<port>]/<db_nam
  database instance that shall be used by the application. The term `<port>` is optional and, if omitted, MongoDB's
  default port (27017) is used. If this environment variable is not set, the settings found in the configuration files
  are used, where the default is: `mongodb://localhost/CtnOCSvr`.
+
+> **Note 3**: if the application is installed as a global Node.js package, replace `node build/main.js` with `ctnocsvr`.
 
 ## How it works
 
@@ -141,4 +173,4 @@ Outgoing message: NEW_OFF_CHAIN_MSG_DATA
 
 This project is for Blockchain of Things' internal use only.
 
-Copyright © 2019, Blockchain of Things Inc.
+Copyright © 2020, Blockchain of Things Inc.
