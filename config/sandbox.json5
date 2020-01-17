@@ -26,7 +26,7 @@
   },
   // Parameter pertaining to IpfsClient module
   ipfsClient: {
-    apiHost: "127.0.0.1",
+    apiHost: "localhost",
     apiPort: 9095  // Connects to IPFS Cluster node (via its HTTP proxy) instead of to IPFS node (port 5001) directly
   }
 }
