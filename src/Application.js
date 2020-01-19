@@ -166,6 +166,7 @@ function startProcessing() {
 }
 
 function processShutdown() {
+    CtnOCSvr.logger.INFO('Application shutting down');
     this.runningState = Application.runningState.stopping;
 
     if (CtnOCSvr.restApi) {
@@ -195,6 +196,7 @@ function checkFinalizeShutdown() {
 }
 
 function finalizeShutdown() {
+    CtnOCSvr.logger.INFO('Exiting now');
     process.exit(this.fatalError ? -1 : 0);
 }
 
