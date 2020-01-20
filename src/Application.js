@@ -11,6 +11,7 @@
 //import util from 'util';
 // Third-party node modules
 import config from 'config';
+import Future from 'fibers/future';
 
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -166,22 +167,32 @@ function startProcessing() {
 }
 
 function processShutdown() {
-    CtnOCSvr.logger.INFO('Application shutting down');
-    this.runningState = Application.runningState.stopping;
+    if (this.runningState !== Application.runningState.stopping) {
+        CtnOCSvr.logger.INFO('Application shutting down');
+        this.runningState = Application.runningState.stopping;
 
-    if (CtnOCSvr.restApi) {
-        // Shutdown Rest API
-        CtnOCSvr.restApi.shutdown();
+        if (CtnOCSvr.restApi) {
+            // Shutdown Rest API
+            CtnOCSvr.restApi.shutdown();
 
-        // Wait for some time to make sure that all processing is finalized gracefully
-        //  before turning off IPFS repository automation
-        setTimeout(() => CtnOCSvr.ipfsRepo.turnAutomationOff(), cfgSettings.shutdownTimeout);
+            // Wait for some time to make sure that all processing is finalized gracefully
+            //  before turning off IPFS repository automation
+            setTimeout(() => {
+                // Make sure that code runs in its own fiber
+                Future.task(() => {
+                    CtnOCSvr.ipfsRepo.turnAutomationOff()
+                }).detach();
+            }, cfgSettings.shutdownTimeout);
+        }
+        else if (CtnOCSvr.ipfsRepo) {
+            CtnOCSvr.ipfsRepo.turnAutomationOff();
+        }
+
+        checkFinalizeShutdown.call(this);
     }
-    else if (CtnOCSvr.ipfsRepo) {
-        CtnOCSvr.ipfsRepo.turnAutomationOff();
+    else {
+        CtnOCSvr.logger.DEBUG('Request to shutdown application while application is already stopping; request ignored');
     }
-
-    checkFinalizeShutdown.call(this);
 }
 
 function checkFinalizeShutdown() {
