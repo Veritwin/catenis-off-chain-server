@@ -63,8 +63,8 @@ export function Database(mongoUrl, collDescriptor) {
 // Public Database object methods
 //
 
-Database.prototype.close = function () {
-    this.mongoClient.close();
+Database.prototype.close = function (force) {
+    wrapAsync(this.mongoClient.close, this.mongoClient)(force);
 };
 
 

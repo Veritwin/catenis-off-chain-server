@@ -181,11 +181,6 @@ function processShutdown() {
         CtnOCSvr.ipfsRepo.turnAutomationOff();
     }
 
-    if (CtnOCSvr.db) {
-        // Close database client
-        CtnOCSvr.db.close();
-    }
-
     checkFinalizeShutdown.call(this);
 }
 
@@ -196,6 +191,16 @@ function checkFinalizeShutdown() {
 }
 
 function finalizeShutdown() {
+    if (CtnOCSvr.db) {
+        try {
+            // Close database client
+            CtnOCSvr.db.close(true);
+        }
+        catch (err) {
+            CtnOCSvr.logger.ERROR('Error while closing database client.', err);
+        }
+    }
+
     CtnOCSvr.logger.INFO('Exiting now');
     process.exit(this.fatalError ? -1 : 0);
 }
