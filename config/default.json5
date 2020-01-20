@@ -43,6 +43,10 @@
     shutdownWithErrorTimeout: 10000,  // (10 sec.) Timeout, in milliseconds, to wait before shutting down the application after an uncaught exception
                                       //  Note: this value should be substantially greater than the `shutdownTimeout` property
   },
+  // Parameters pertaining to the Startup module
+  startup: {
+    pidFilename: "ctnocsvr-pid"  // Name of the file containing the ID of the current process that is created/updated whenever that app starts
+  },
   // Parameters pertaining to Database module
   database: {
     mongo: {
