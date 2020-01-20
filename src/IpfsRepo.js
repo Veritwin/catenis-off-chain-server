@@ -234,7 +234,9 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
             savedDate: mtRefDate.toDate(),
             savedMicroseconds: microSecs
         }, (err) => {
-            CtnOCSvr.logger.ERROR('Error trying to insert saved off-chain message data onto local database.', err);
+            if (err) {
+                CtnOCSvr.logger.ERROR('Error trying to insert saved off-chain message data onto local database.', err);
+            }
         });
 
         // Retrieve updated repository root CID
