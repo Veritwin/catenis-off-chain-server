@@ -3,4 +3,5 @@
 /log/
 /src/
 /config/*development*.json5
+/test
 ctnocsvr-pid
