@@ -253,7 +253,7 @@ IpfsClient.initialize = function () {
 //
 
 function handleError(methodName, err, logError = false, callback) {
-    let errMsg = util.format('Error calling IPFS API \'%s\' method.', methodName);
+    let errMsg = util.format('Error calling IPFS API \'%s\' method: %s', methodName, err.message);
 
     if (logError) {
         // Log error
