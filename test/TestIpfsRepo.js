@@ -14,7 +14,7 @@ import {IpfsClient} from '../src/IpfsClient';
 import {IpfsRepo} from '../src/IpfsRepo';
 import {ctnNode} from '../src/CtnNode';
 
-describe.only('IPFS Repository', function (done) {
+describe.skip('IPFS Repository', function (done) {
     let newCid;
 
     before(function (done) {

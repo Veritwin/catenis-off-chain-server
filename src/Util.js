@@ -63,6 +63,46 @@ export function wrapAsync(fn, context) {
     };
 }
 
+export function wrapAsyncPromise(fn, context) {
+    return function (/* arguments */) {
+        return Future.fromPromise(fn.apply(context || this, Array.from(arguments))).wait();
+    };
+}
+
+export function wrapAsyncIterable(fn, sink, context) {
+    return function (/* arguments */) {
+        return sink(fn.apply(context || this, Array.from(arguments)));
+    };
+}
+
+// Note: this should be used as a `sink` to Util.wrapAsyncIterable()
+export function asyncIterableToArray(it) {
+    const arr = [];
+    const fut = new Future();
+
+    (async function () {
+        for await (let el of it) {
+            arr.push(el);
+        }
+
+        fut.return(arr);
+    })()
+    .catch((err) => {
+        if (!fut.isResolved()) {
+            fut.throw(err);
+        }
+    });
+
+    fut.wait();
+
+    return arr;
+}
+
+// Note: this should be used as a `sink` to Util.wrapAsyncIterable()
+export function asyncIterableToBuffer(it) {
+    return Buffer.concat(asyncIterableToArray(it));
+}
+
 export function formatNumber(n, d) {
     const s = n.toString();
 

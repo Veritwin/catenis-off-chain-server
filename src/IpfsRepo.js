@@ -222,7 +222,7 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
         });
 
         result = {
-            cid: this.ipfsClient.filesStat(path, {hash: true}).hash,
+            cid: this.ipfsClient.filesStat(path, {hash: true}).cid.toString(),
             savedDate: mtRefDate.toISOString()
         };
 
@@ -240,7 +240,7 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
         });
 
         // Retrieve updated repository root CID
-        this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).hash;
+        this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).cid.toString();
 
         if (retrieveImmediately) {
             process.nextTick(this.boundRetrieveOffChainMsgDataImmediately)
@@ -365,7 +365,7 @@ function initRootCid() {
     }
 
     if (rootStat) {
-        this.rootCid = rootStat.hash;
+        this.rootCid = rootStat.cid.toString();
     }
     else if (this.lastSavedRootCid) {
         // Repository root CID not found in IPFS node. Set it to last saved value
@@ -378,7 +378,7 @@ function initRootCid() {
         //  Define new root
         CtnOCSvr.logger.WARN('Repository root directory (/root) not found in IPFS node, and no root CID is currently saved to CNS. Creating a new (empty) root directory.');
         this.ipfsClient.filesMkdir(cfgSettings.rootDir);
-        this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).hash;
+        this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).cid.toString();
     }
 }
 
@@ -605,7 +605,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                 }
 
                                 // Retrieve off-chain message envelope contents
-                                this.ipfsClient.cat(fileEntry.hash, (err, msgEnvelopeData) => {
+                                this.ipfsClient.cat(fileEntry.cid, (err, msgEnvelopeData) => {
                                     if (err) {
                                         cb3(err);
                                     }
@@ -615,7 +615,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
                                         docsRetrievedOffChainMsgDataToInsert.push({
                                             ctnNodeIdx: ctnNodeIdx,
-                                            cid: fileEntry.hash,
+                                            cid: fileEntry.cid.toString(),
                                             data: new mongodb.Binary(msgEnvelopeData),
                                             dataType: ctnOffChainLib.OffChainData.msgDataType.msgEnvelope.name,
                                             savedDate: savedDate.date,
@@ -681,7 +681,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                 }
 
                                 // Retrieve off-chain message receipt contents
-                                this.ipfsClient.cat(fileEntry.hash, (err, msgReceiptData) => {
+                                this.ipfsClient.cat(fileEntry.cid, (err, msgReceiptData) => {
                                     if (err) {
                                         cb3(err);
                                     }
@@ -691,7 +691,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
                                         docsRetrievedOffChainMsgDataToInsert.push({
                                             ctnNodeIdx: ctnNodeIdx,
-                                            cid: fileEntry.hash,
+                                            cid: fileEntry.cid.toString(),
                                             data: new mongodb.Binary(msgReceiptData),
                                             dataType: ctnOffChainLib.OffChainData.msgDataType.msgReceipt.name,
                                             savedDate: savedDate.date,

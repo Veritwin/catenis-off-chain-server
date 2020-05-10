@@ -11,13 +11,21 @@
 import util from 'util';
 // Third-party node modules
 import config from 'config';
+import toStream from 'it-to-stream';
 import ipfsHttpClient from 'ipfs-http-client';
-import callbackify from 'callbackify';
-const ipfsHttpClientConfigure = require('ipfs-http-client/src/lib/configure');
+const ipfsHttpClientLib = {
+    configure: require('ipfs-http-client/src/lib/configure'),
+    toUrlSearchParams: require('ipfs-http-client/src/lib/to-url-search-params')
+};
 
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
-import {wrapAsync} from './Util';
+import {
+    wrapAsyncPromise,
+    wrapAsyncIterable,
+    asyncIterableToArray,
+    asyncIterableToBuffer
+} from './Util';
 
 // Config entries
 const ipfsClientConfig = config.get('ipfsClient');
@@ -46,22 +54,24 @@ export function IpfsClient(host, port, protocol) {
 
     // noinspection JSUnresolvedVariable
     this.api = {
-        add: wrapAsync(this.ipfs.add, this.ipfs),
-        cat: wrapAsync(this.ipfs.cat, this.ipfs),
-        catReadableStream: this.ipfs.catReadableStream,
-        id: wrapAsync(this.ipfs.id, this.ipfs),
-        ls: wrapAsync(this.ipfs.ls, this.ipfs),
+        add: wrapAsyncIterable(this.ipfs.add, asyncIterableToArray, this.ipfs),
+        cat: wrapAsyncIterable(this.ipfs.cat, asyncIterableToBuffer, this.ipfs),
+        catReadableStream: wrapAsyncIterable(this.ipfs.cat, toStream.readable, this.ipfs),
+        id: wrapAsyncPromise(this.ipfs.id, this.ipfs),
+        ls: wrapAsyncIterable(this.ipfs.ls, asyncIterableToArray, this.ipfs),
         files: {
-            ls: wrapAsync(this.ipfs.files.ls, this.ipfs),
-            mkdir: wrapAsync(this.ipfs.files.mkdir, this.ipfs),
-            stat: wrapAsync(this.ipfs.files.stat, this.ipfs),
-            cp: wrapAsync(this.ipfs.files.cp, this.ipfs),
-            write: wrapAsync(this.ipfs.files.write, this.ipfs)
+            ls: wrapAsyncIterable(this.ipfs.files.ls, asyncIterableToArray, this.ipfs),
+            mkdir: wrapAsyncPromise(this.ipfs.files.mkdir, this.ipfs),
+            stat: wrapAsyncPromise(this.ipfs.files.stat, this.ipfs),
+            cp: wrapAsyncPromise(this.ipfs.files.cp, this.ipfs),
+            write: wrapAsyncPromise(this.ipfs.files.write, this.ipfs),
+            rm: wrapAsyncPromise(this.ipfs.files.rm, this.ipfs, this.ipfs)
         },
         pin: {
-            add: wrapAsync(this.ipfs.pin.add, this.ipfs),
-            update: wrapAsync(this.ipfs.pin.update, this.ipfs),
-            rm: wrapAsync(this.ipfs.pin.rm, this.ipfs)
+            add: wrapAsyncPromise(this.ipfs.pin.add, this.ipfs),
+            update: wrapAsyncPromise(this.ipfs.pin.update, this.ipfs),
+            rm: wrapAsyncPromise(this.ipfs.pin.rm, this.ipfs),
+            ls: wrapAsyncIterable(this.ipfs.pin.ls, asyncIterableToArray, this.ipfs)
         }
     };
 }
@@ -81,13 +91,10 @@ IpfsClient.prototype.add = function (data, options) {
 
 IpfsClient.prototype.cat = function (ipfsPath, callback) {
     if (callback) {
-        this.api.cat(ipfsPath, function (err, result) {
-            if (err) {
-                handleError('cat', err, true, callback);
-            }
-            else {
-                callback(null, result);
-            }
+        this.api.cat(ipfsPath).then(result => {
+            callback(null, result);
+        }, err => {
+            handleError('cat', err, true, callback);
         });
     }
     else {
@@ -172,6 +179,15 @@ IpfsClient.prototype.filesWrite = function (path, content, options) {
     }
 };
 
+IpfsClient.prototype.filesRm = function (path, options) {
+    try {
+        return this.api.files.rm(path, options);
+    }
+    catch (err) {
+        handleError('filesRm', err);
+    }
+};
+
 IpfsClient.prototype.pinAdd = function (hash, options) {
     try {
         return this.api.pin.add(hash, options);
@@ -199,6 +215,15 @@ IpfsClient.prototype.pinRm = function (hash, options) {
     }
 };
 
+IpfsClient.prototype.pinLs = function (hash, options) {
+    try {
+        return this.api.pin.ls(hash, options);
+    }
+    catch (err) {
+        handleError('pinLs', err);
+    }
+};
+
 
 // Module functions used to simulate private IpfsClient object methods
 //  NOTE: these functions need to be bound to a IpfsClient object reference (this) before
@@ -211,25 +236,25 @@ function addMissingIpfsMethods() {
 }
 
 function addMissingPinUpdateMethod() {
-    this.ipfs.pin.update = callbackify.variadic(ipfsHttpClientConfigure(({ ky }) => {
-        return async (hash1, hash2, options) => {
-            options = options || {};
+    this.ipfs.pin.update = ipfsHttpClientLib.configure(api => {
+        return async (hash1, hash2, options = {}) => {
+            if (options.unpin != null) {
+                options.unpin = `${options.unpin}`;
+            }
 
-            const searchParams = new URLSearchParams(options.searchParams);
-            searchParams.set('arg', `${hash1}`);
-            searchParams.append('arg', `${hash2}`);
-            if (options.unpin != null) searchParams.set('unpin', options.unpin ? 'true' : 'false');
-
-            const res = await ky.post('pin/update', {
+            const res = await (await api.post('pin/update', {
                 timeout: options.timeout,
                 signal: options.signal,
-                headers: options.headers,
-                searchParams
-            }).json();
+                searchParams: ipfsHttpClientLib.toUrlSearchParams({
+                    arg: [`${hash1}`, `${hash2}`],
+                    ...options
+                }),
+                headers: options.headers
+            })).json()
 
-            return (res.Pins || []).map(hash => ({ hash }));
+            return (res.Pins || []).map(cid => ({ cid: new ipfsHttpClient.CID(cid) }))
         }
-    })(this.ipfsClientConfig));
+    })(this.ipfsClientConfig);
 }
 
 
