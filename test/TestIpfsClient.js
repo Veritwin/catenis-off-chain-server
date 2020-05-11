@@ -74,6 +74,37 @@ describe('IPFS Client', function (done) {
         }).resolve(done);
     });
 
+    it('should successfully retrieve the saved content (via callback)', function (done) {
+        Future.task(function () {
+            CtnOCSvr.ipfsClient.cat(tstMsg1.cid, (err, result) => {
+                expect(err).not.to.exist;
+
+                //console.debug('>>>>>> ipfsClient.cat() result:', result);
+                expect(Buffer.isBuffer(result)).to.true;
+                expect(result.compare(tstMsg1.data)).equals(0);
+                done();
+            });
+        }).detach();
+    });
+
+    it('should throw if trying to retrieve an invalid content', function (done) {
+        Future.task(function () {
+            expect (function () {
+                CtnOCSvr.ipfsClient.cat(tstMsg1.cid.toString() + '/bla');
+            }).to.throw(Error, 'Error calling IPFS API \'cat\' method: no link named "bla"');
+        }).resolve(done);
+    });
+
+    it('should fail if trying to retrieve an invalid content (via callback)', function (done) {
+        Future.task(function () {
+            CtnOCSvr.ipfsClient.cat(tstMsg1.cid.toString() + '/bla', err => {
+                expect(err).to.be.an.instanceOf(Error);
+                expect(err.message).to.include('Error calling IPFS API \'cat\' method: no link named "bla"');
+                done();
+            });
+        }).detach();
+    });
+
     it('should successfully retrieve the saved content (via a stream)', function (done) {
         Future.task(function () {
             const readStr = CtnOCSvr.ipfsClient.catReadableStream(tstMsg1.cid);

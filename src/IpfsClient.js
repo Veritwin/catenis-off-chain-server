@@ -90,20 +90,21 @@ IpfsClient.prototype.add = function (data, options) {
 };
 
 IpfsClient.prototype.cat = function (ipfsPath, callback) {
+    let result;
+
+    try {
+        result = this.api.cat(ipfsPath);
+    }
+    catch (err) {
+        handleError('cat', err, undefined, callback);
+        return;
+    }
+
     if (callback) {
-        this.api.cat(ipfsPath).then(result => {
-            callback(null, result);
-        }, err => {
-            handleError('cat', err, true, callback);
-        });
+        callback(null, result);
     }
     else {
-        try {
-            return this.api.cat(ipfsPath);
-        }
-        catch (err) {
-            handleError('cat', err);
-        }
+        return result;
     }
 };
 
