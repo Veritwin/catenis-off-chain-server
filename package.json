@@ -12,7 +12,7 @@
     "build": "npm run cleanup-build && babel src -d build && chmod u+x build/main.js",
     "predeploy": "npm run cleanup && npm run build && npm pack && mv *.tgz dist/",
     "predeploy-dev": "bin/npmignore_dev.sh && npm run cleanup-dev && npm run build && npm pack && mv *.tgz dist/dev && bin/npmignore_dev.sh reset",
-    "test": "env NODE_APP_INSTANCE=test mocha --require @babel/polyfill --require @babel/register"
+    "test": "env NODE_APP_INSTANCE=test mocha --require core-js/stable --require @babel/register"
   },
   "keywords": [
     "Catenis",
@@ -27,11 +27,10 @@
   "devDependencies": {
     "@babel/cli": "^7.7.0",
     "@babel/core": "^7.7.2",
-    "@babel/polyfill": "^7.7.0",
     "@babel/preset-env": "^7.7.1",
     "@babel/register": "^7.7.0",
     "chai": "^4.2.0",
-    "mocha": "^6.2.2"
+    "mocha": "^7.1.2"
   },
   "dependencies": {
     "async": "^3.1.0",
