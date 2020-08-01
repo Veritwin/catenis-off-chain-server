@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1] - 2020-08-01
+
+### Fixes
+- Upgrade dependency modules to mitigate security vulnerabilities.
+
+### Changes
+- Preparations for using application in production environment.
+
 ## [1.1.0] - 2020-05-11
 
 ### Changes
