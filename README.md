@@ -22,8 +22,9 @@ npm run predeploy
 
 A tarball named `catenis-off-chain-server-<version>.tgz` is written to the `dist` subdirectory.
 
-> **Note**: if deploying the application for a development environment, use the `predeploy-dev` npm script instead (i.e.,
- `npm run predeploy-dev`). In that case, the tarball is written to the `dist/dev` subdirectory.
+> **Note**: if deploying the application for a non-production environment (i.e., *sandbox* or *development*), use the
+ appropriate alternative npm script (i.e., `predeploy-sandbox` or `predeploy-dev`). In that case, the tarball is written
+ to a corresponding subdirectory (i.e., `div/sandbox` or `dist/dev`).
 
 Copy the tarball to the target host and extract its contents, renaming the top-level directory of the extracted contents
  from `package` to `CtnOCSvr`.

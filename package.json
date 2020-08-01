@@ -6,12 +6,15 @@
   "scripts": {
     "cleanup-build": "rm -rf build/*",
     "cleanup-dist": "rm -f dist/$npm_package_name-$npm_package_version.tgz",
+    "cleanup-dist-sandbox": "rm -f dist/sandbox/$npm_package_name-$npm_package_version.tgz",
     "cleanup-dist-dev": "rm -f dist/dev/$npm_package_name-$npm_package_version.tgz",
     "cleanup": "npm run cleanup-build && npm run cleanup-dist",
+    "cleanup-sandbox": "npm run cleanup-build && npm run cleanup-dist-sandbox",
     "cleanup-dev": "npm run cleanup-build && npm run cleanup-dist-dev",
     "build": "npm run cleanup-build && babel src -d build && chmod u+x build/main.js",
-    "predeploy": "npm run cleanup && npm run build && npm pack && mv *.tgz dist/",
-    "predeploy-dev": "bin/npmignore_dev.sh && npm run cleanup-dev && npm run build && npm pack && mv *.tgz dist/dev && bin/npmignore_dev.sh reset",
+    "predeploy": "npm run cleanup && npm run build && bin/fixnpmignore.sh && npm pack && mv *.tgz dist/",
+    "predeploy-sandbox": "npm run cleanup-sandbox && npm run build && bin/fixnpmignore.sh sandbox && npm pack && bin/fixnpmignore.sh && mv *.tgz dist/sandbox",
+    "predeploy-dev": "npm run cleanup-dev && npm run build && bin/fixnpmignore.sh development && npm pack && bin/fixnpmignore.sh && mv *.tgz dist/dev",
     "test": "env NODE_APP_INSTANCE=test mocha --require core-js/stable --require @babel/register"
   },
   "keywords": [
