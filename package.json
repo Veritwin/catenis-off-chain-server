@@ -1,6 +1,6 @@
 {
   "name": "catenis-off-chain-server",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "REST API service for sending and receiving Catenis off-chain messages",
   "main": "build/main.js",
   "scripts": {
