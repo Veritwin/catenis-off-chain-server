@@ -25,16 +25,16 @@
     "ctnocsvr": "./build/main.js"
   },
   "devDependencies": {
-    "@babel/cli": "^7.7.0",
-    "@babel/core": "^7.7.2",
-    "@babel/preset-env": "^7.7.1",
-    "@babel/register": "^7.7.0",
+    "@babel/cli": "^7.7.7",
+    "@babel/core": "^7.7.7",
+    "@babel/preset-env": "^7.7.7",
+    "@babel/register": "^7.7.7",
     "chai": "^4.2.0",
     "mocha": "^7.1.2"
   },
   "dependencies": {
     "async": "^3.1.0",
-    "catenis-off-chain-lib": "git+ssh://git@bitbucket.org/blockchainofthings/catenis-off-chain-lib.git#semver:^1.0.0",
+    "catenis-off-chain-lib": "git+ssh://git@bitbucket.org/blockchainofthings/catenis-off-chain-lib.git#semver:^1.2.1",
     "config": "^3.2.4",
     "core-js": "^3.4.1",
     "fibers": "^4.0.2",
