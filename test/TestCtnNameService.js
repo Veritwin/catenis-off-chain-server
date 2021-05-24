@@ -2,7 +2,6 @@
  * Created by claudio on 2019-11-20
  */
 
-import Future from 'fibers/future';
 import {expect} from 'chai';
 
 import './init/Setup';
@@ -14,82 +13,97 @@ import {CtnNameService} from '../src/CtnNameService';
 describe.skip('Catenis Name Service', function (done) {
     let newCid;
 
-    before(function (done) {
-        Future.task(function () {
+    before(async function () {
+        this.timeout(10000);
+        await (async function () {
             Application.initialize();
-            Database.initialize();
-            CtnNameService.initialize();
-        }).resolve(done);
+            await Database.initialize();
+            await CtnNameService.initialize();
+        })();
     });
 
-    after(function (done) {
-        Future.task(function () {
-            if (CtnOCSvr.db) {
-                CtnOCSvr.db.close();
-            }
-        }).resolve(done);
+    after(async function () {
+        if (CtnOCSvr.db) {
+            await CtnOCSvr.db.close();
+        }
     });
 
     it('should have been properly initialized', function () {
         expect(CtnOCSvr.cns).not.to.be.undefined;
     });
 
-    it('should successfully retrieve IPFS repository root CID', function (done) {
-        Future.task(function () {
-            let data;
+    it('should successfully retrieve IPFS repository root CID', async function () {
+        let data;
+        let error;
 
-            expect(function () {
-                data = CtnOCSvr.cns.getIpfsRepoRootCid();
-            }).to.not.throw();
-            expect(data === undefined || typeof data === 'object').to.be.true;
+        try {
+            data = await CtnOCSvr.cns.getIpfsRepoRootCid();
+        }
+        catch (err) {
+            error = err;
+        }
 
-            if (data) {
-                expect(data).to.have.all.keys('cid', 'lastUpdatedDate');
-                expect(data.cid).to.be.a('string');
-            }
-        }).resolve(done);
+        expect(error).to.be.undefined;
+        expect(data === undefined || typeof data === 'object').to.be.true;
+
+        if (data) {
+            expect(data).to.have.all.keys('cid', 'lastUpdatedDate');
+            expect(data.cid).to.be.a('string');
+        }
     });
 
-    it('should successfully set IPFS repository root CID', function (done) {
-        Future.task(function () {
-            newCid = 'Test_newCID#' + Date.now();
+    it('should successfully set IPFS repository root CID', async function () {
+        newCid = 'Test_newCID#' + Date.now();
+        let error;
 
-            expect(function () {
-                CtnOCSvr.cns.setIpfsRepoRootCid(newCid);
-            }).to.not.throw();
-        }).resolve(done);
+        try {
+            await CtnOCSvr.cns.setIpfsRepoRootCid(newCid);
+        }
+        catch (err) {
+            error = err;
+        }
+
+        expect(error).to.be.undefined;
     });
 
-    it('should successfully retrieve new IPFS repository root CID', function (done) {
-        Future.task(function () {
-            let data;
+    it('should successfully retrieve new IPFS repository root CID', async function () {
+        let data;
+        let error;
 
-            expect(function () {
-                data = CtnOCSvr.cns.getIpfsRepoRootCid();
-            }).to.not.throw();
-            expect(data === undefined || typeof data === 'object').to.be.true;
+        try {
+            data = await CtnOCSvr.cns.getIpfsRepoRootCid();
+        }
+        catch (err) {
+            error = err;
+        }
 
-            if (data) {
-                expect(data).to.have.all.keys('cid', 'lastUpdatedDate');
-                expect(data.cid).to.equal(newCid);
-            }
-        }).resolve(done);
+        expect(error).to.be.undefined;
+        expect(data === undefined || typeof data === 'object').to.be.true;
+
+        if (data) {
+            expect(data).to.have.all.keys('cid', 'lastUpdatedDate');
+            expect(data.cid).to.equal(newCid);
+        }
     });
 
-    it('should successfully retrieve all IPFS repository root CIDs', function (done) {
-        Future.task(function () {
-            let data;
+    it('should successfully retrieve all IPFS repository root CIDs', async function () {
+        let data;
+        let error;
 
-            expect(function () {
-                data = CtnOCSvr.cns.getAllIpfsRepoRootCids();
-            }).to.not.throw();
-            expect(data === undefined || typeof data === 'object').to.be.true;
+        try {
+            data = await CtnOCSvr.cns.getAllIpfsRepoRootCids();
+        }
+        catch (err) {
+            error = err;
+        }
 
-            if (data) {
-                Object.values(data).forEach(function (entry) {
-                    expect(entry).to.have.all.keys('cid', 'lastUpdatedDate');
-                });
-            }
-        }).resolve(done);
+        expect(error).to.be.undefined;
+        expect(data === undefined || typeof data === 'object').to.be.true;
+
+        if (data) {
+            Object.values(data).forEach(function (entry) {
+                expect(entry).to.have.all.keys('cid', 'lastUpdatedDate');
+            });
+        }
     });
 });

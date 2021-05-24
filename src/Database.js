@@ -12,11 +12,9 @@ import util from 'util';
 // Third-party node modules
 import config from 'config';
 import mongodb from 'mongodb';
-import Future from 'fibers/future';
 
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
-import {wrapAsync} from './Util';
 
 // Config entries
 const dbConfig = config.get('database');
@@ -41,12 +39,21 @@ const cfgSettings = {
 //  collDescriptor [Object] - Object with map of collection description per collection name
 export function Database(mongoUrl, collDescriptor) {
     this.mongoUrl = mongoUrl;
+    this.collDescriptor = collDescriptor;
 
+    this.promiseConnect = mongodb.MongoClient.connect(this.mongoUrl, {
+        useUnifiedTopology: true
+    });
+}
+
+
+// Public Database object methods
+//
+
+Database.prototype.finalizeSetup = async function () {
     try {
-        // Try to connect to mongoDB server
-        this.mongoClient = wrapAsync(mongodb.MongoClient.connect)(this.mongoUrl, {
-            useUnifiedTopology: true
-        });
+        // Wait for connection to complete
+        this.mongoClient = await this.promiseConnect;
     }
     catch (err) {
         CtnOCSvr.logger.ERROR('Failure to connect to MongoDB server (url: %s).', this.mongoUrl, err);
@@ -56,15 +63,11 @@ export function Database(mongoUrl, collDescriptor) {
     this.mongoDb = this.mongoClient.db();
 
     // Set up database collections
-    initCollections.call(this, collDescriptor);
-}
+    await initCollections.call(this, this.collDescriptor);
+};
 
-
-// Public Database object methods
-//
-
-Database.prototype.close = function (force) {
-    wrapAsync(this.mongoClient.close, this.mongoClient)(force);
+Database.prototype.close = async function (force) {
+    await this.mongoClient.close(force);
 };
 
 
@@ -74,36 +77,42 @@ Database.prototype.close = function (force) {
 //      or .bind().
 //
 
-function initCollections(collDescriptor) {
+async function initCollections(collDescriptor) {
     const initFuncs = [];
     this.collection = {};
 
-    Object.keys(collDescriptor).forEach((collName) => {
+    for (const collName of Object.keys(collDescriptor)) {
         const collDescription = collDescriptor[collName];
         const mongoCollection = this.mongoDb.collection(collName);
 
         this.collection[collName] = {
             _mongo: mongoCollection,
-            find: function () {
-                const cursor = mongoCollection.find.apply(mongoCollection, arguments);
-                const futFunc = Future.wrap(cursor.toArray);
-
-                return futFunc.apply(cursor).wait();
+            async find(...args) {
+                return (await mongoCollection.find(...args)).toArray();
             },
-            findOne: wrapAsync(mongoCollection.findOne, mongoCollection),
-            insertOne: wrapAsync(mongoCollection.insertOne, mongoCollection),
-            insertMany: wrapAsync(mongoCollection.insertMany, mongoCollection),
-            updateOne: wrapAsync(mongoCollection.updateOne, mongoCollection),
-            updateMany: wrapAsync(mongoCollection.updateMany, mongoCollection),
-            remove: wrapAsync(mongoCollection.remove, mongoCollection)
+            async findOne(...args) {
+                return await mongoCollection.findOne(...args);
+            },
+            async insertOne(...args) {
+                return await mongoCollection.insertOne(...args);
+            },
+            async insertMany(...args) {
+                return await mongoCollection.insertMany(...args);
+            },
+            async updateOne(...args) {
+                return await mongoCollection.updateOne(...args);
+            },
+            async updateMany(...args) {
+                return await mongoCollection.updateMany(...args);
+            },
+            async remove(...args) {
+                return await mongoCollection.remove(...args);
+            }
         };
-
-        let createIndex;
-        let dropIndex;
 
         // Create indices for the collection
         if ('indices' in collDescription) {
-            collDescription.indices.forEach((index) => {
+            for (const index of collDescription.indices) {
                 let args = [index.fields];
 
                 if ('opts' in index) {
@@ -112,15 +121,11 @@ function initCollections(collDescriptor) {
 
                 let tryAgain;
 
-                if (!createIndex) {
-                    createIndex = wrapAsync(mongoCollection.createIndex, mongoCollection);
-                }
-
                 do {
                     tryAgain = false;
 
                     try {
-                        createIndex.apply(mongoCollection, args);
+                        await mongoCollection.createIndex(...args);
                     }
                     catch (err) {
                         let matchResult;
@@ -131,44 +136,40 @@ function initCollections(collDescriptor) {
                             const indexName = matchResult[1];
                             CtnOCSvr.logger.INFO('Fixing index \'%s\' of %s collection', indexName, collName);
 
-                            if (!dropIndex) {
-                                dropIndex = wrapAsync(mongoCollection.dropIndex, mongoCollection);
-                            }
-
-                            dropIndex(indexName);
+                            await mongoCollection.dropIndex(indexName);
                             tryAgain = true;
                         }
                     }
                 }
                 while (tryAgain);
-            });
+            }
         }
 
         // Save initialization function to be called later
         if ('initFunc' in collDescription) {
             initFuncs.push(collDescription.initFunc);
         }
-    });
+    }
 
     // Initialize the collections as needed
-    initFuncs.forEach((initFunc) => {
-        initFunc.call(this);
-    });
+    for (const initFunc of initFuncs) {
+        await initFunc.call(this);
+    }
 }
 
-function initApplicationCollection() {
+async function initApplicationCollection() {
     // Make sure that Application collection has ONE and only one doc/rec
-    const docApps = this.collection.Application.find({}, {projection: {_id: 1}});
+    const docApps = await this.collection.Application.find({}, {projection: {_id: 1}});
 
     if (docApps.length === 0) {
         // No doc/rec defined yet. Create new doc/rec with default settings
-        this.collection.Application.insertOne({
+        await this.collection.Application.insertOne({
             lastIpfsRepoRootCidsRetrievalDate: null
         });
     }
     else if (docApps.length > 1) {
         // More than one doc/rec found. Delete all docs/recs except the first one
-        this.collection.Application.remove({_id: {$ne: docApps[0]._id}});
+        await this.collection.Application.remove({_id: {$ne: docApps[0]._id}});
     }
 }
 
@@ -176,7 +177,7 @@ function initApplicationCollection() {
 // Database function class (public) methods
 //
 
-Database.initialize = function() {
+Database.initialize = async function() {
     CtnOCSvr.logger.TRACE('DB initialization');
     const collDescriptor = {
         Application: {
@@ -285,6 +286,8 @@ Database.initialize = function() {
     const mongoUrl = process.env.MONGO_URL ? process.env.MONGO_URL : util.format('mongodb://%s%s/%s', cfgSettings.mongo.host, cfgSettings.mongo.port ? ':' + cfgSettings.mongo.port : '', cfgSettings.mongo.dbName);
 
     CtnOCSvr.db = new Database(mongoUrl, collDescriptor);
+
+    await CtnOCSvr.db.finalizeSetup();
 };
 
 

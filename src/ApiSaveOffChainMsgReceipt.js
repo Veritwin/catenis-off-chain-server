@@ -12,7 +12,6 @@
 // Third-party node modules
 import resError from 'restify-errors';
 import ctnOffChainLib from 'catenis-off-chain-lib';
-import Future from 'fibers/future';
 
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -39,9 +38,7 @@ import {IpfsRepo} from './IpfsRepo';
 //  }
 //
 export function saveOffChainMsgReceipt(req, res, next) {
-    // Make sure that code runs in its own fiber
-    // noinspection DuplicatedCode
-    Future.task(() => {
+    (async () => {
         if (res.claimUpgrade) {
             return new resError.ForbiddenError('Endpoint does not allow for connection upgrade');
         }
@@ -67,20 +64,18 @@ export function saveOffChainMsgReceipt(req, res, next) {
         const retrieveImmediately = !!req.body.immediateRetrieval;
 
         // Save off-chain message data onto IPFS repository
-        const saveResult = CtnOCSvr.ipfsRepo.saveOffChainMsgData(bufMsgReceipt, IpfsRepo.offChainMsgDataRepo.msgReceipt, retrieveImmediately);
+        const saveResult = await CtnOCSvr.ipfsRepo.saveOffChainMsgData(bufMsgReceipt, IpfsRepo.offChainMsgDataRepo.msgReceipt, retrieveImmediately);
 
         res.send({
             status: 'success',
             data: saveResult
         });
-    }).resolve((err, result) => {
-        if (err) {
-            CtnOCSvr.logger.ERROR('Error processing POST \'/msg-data/receipt\' API request.', err);
-            return next(new resError.InternalServerError('Internal server error'));
-        }
-        else {
-            next(result);
-        }
+    })()
+    .then(result => {
+        next(result);
+    }, err => {
+        CtnOCSvr.logger.ERROR('Error processing POST \'/msg-data/receipt\' API request.', err);
+        return next(new resError.InternalServerError('Internal server error'));
     });
 }
 

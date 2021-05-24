@@ -12,12 +12,9 @@
 // Third-party node modules
 import config from 'config';
 import resError from 'restify-errors';
-import moment from 'moment';
-import Future from 'fibers/future';
 
 // References code in other (Catenis Name Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
-import {strictParseInt} from './Util';
 
 // Config entries
 const apiConfig = config.get('apiGetOffChainMsgData');
@@ -53,8 +50,7 @@ export const cfgSettings = {
 //  }
 //
 export function getSingleOffChainMsgData(req, res, next) {
-    // Make sure that code runs in its own fiber
-    Future.task(() => {
+    (async () => {
         if (res.claimUpgrade) {
             return new resError.ForbiddenError('Endpoint does not allow for connection upgrade');
         }
@@ -67,7 +63,7 @@ export function getSingleOffChainMsgData(req, res, next) {
             return new resError.BadRequestError('Missing or invalid request parameters');
         }
 
-        const msgData = CtnOCSvr.ipfsRepo.getRetriedOffChainMsgDataByCid(req.params.cid, req.params.includeSavedOnly);
+        const msgData = await CtnOCSvr.ipfsRepo.getRetriedOffChainMsgDataByCid(req.params.cid, req.params.includeSavedOnly);
 
         if (msgData) {
             res.send({
@@ -78,14 +74,12 @@ export function getSingleOffChainMsgData(req, res, next) {
         else {
             return new resError.BadRequestError('No off-chain message data found with the given CID');
         }
-    }).resolve((err, result) => {
-        if (err) {
-            CtnOCSvr.logger.ERROR('Error processing GET \'/msg-data/:cid\' API request.', err);
-            next(new resError.InternalServerError('Internal server error'));
-        }
-        else {
-            next(result);
-        }
+    })()
+    .then(result => {
+        next(result);
+    }, err => {
+        CtnOCSvr.logger.ERROR('Error processing GET \'/msg-data/:cid\' API request.', err);
+        next(new resError.InternalServerError('Internal server error'));
     });
 }
 

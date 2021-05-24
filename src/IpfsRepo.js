@@ -11,7 +11,6 @@
 //import util from 'util';
 // Third-party node modules
 import config from 'config';
-import Future from 'fibers/future';
 import moment from 'moment';
 import async from 'async';
 import mongodb from 'mongodb';
@@ -50,13 +49,7 @@ export function IpfsRepo(ipfsClient) {
     //  message data from local Catenis node's IPFS repository
     this.retrieveLocalOCMsgDataCS = new CriticalSection();
 
-    try {
-        initRootCid.call(this);
-    }
-    catch (err) {
-        CtnOCSvr.logger.ERROR('Error initializing IPFS repository root CID.', err);
-        throw new Error('Error initializing IPFS repository root CID');
-    }
+    this.promiseInitRootCid = initRootCid.call(this);
 
     this.savingRootCid = false;
     this.retrievingRootCids = false;
@@ -69,10 +62,7 @@ export function IpfsRepo(ipfsClient) {
     this.doingImmediateOCMsgDataRetrieval = false;
     this.retrieveOCMsgDataImmediatedlyAgain = false;
 
-    if (!CtnOCSvr.app.isTest) {
-        this.turnAutomationOn();
-    }
-    else {
+    if (CtnOCSvr.app.isTest) {
         // Running tests. Do not turn automation on but give access to internal
         //  methods used by the automation instead
         this.boundSaveRootCid = saveRootCid.bind(this);
@@ -85,16 +75,30 @@ export function IpfsRepo(ipfsClient) {
 // Public IpfsRepo object methods
 //
 
+IpfsRepo.prototype.finalizeInitialization = async function () {
+    try {
+        await this.promiseInitRootCid;
+    }
+    catch (err) {
+        CtnOCSvr.logger.ERROR('Error initializing IPFS repository root CID.', err);
+        throw new Error('Error initializing IPFS repository root CID');
+    }
+
+    if (!CtnOCSvr.app.isTest) {
+        this.turnAutomationOn();
+    }
+};
+
 IpfsRepo.prototype.turnAutomationOn = function () {
     if (!this.automationOn) {
         // Set recurring timer to save IPFS repository root CID onto CNS
-        saveRootCid.call(this);
+        saveRootCid.call(this).catch(() => undefined);
         this.saveRootCidInterval = setInterval(saveRootCid.bind(this), cfgSettings.saveRootCidInterval);
 
         // Set recurring timer to retrieve updated IPFS repository root CIDs from CNS
         this.retrieveRootCidsWaitTimeout = setTimeout(() => {
             this.retrieveRootCidsWaitTimeout = undefined;
-            retrieveRootCids.call(this);
+            retrieveRootCids.call(this).catch(() => undefined);
             this.retrieveRootCidsInterval = setInterval(retrieveRootCids.bind(this), cfgSettings.retrieveRootCidsInterval);
         }, cfgSettings.retrieveRootCidsWaitTimeout);
 
@@ -105,7 +109,7 @@ IpfsRepo.prototype.turnAutomationOn = function () {
     }
 };
 
-IpfsRepo.prototype.turnAutomationOff = function () {
+IpfsRepo.prototype.turnAutomationOff = async function () {
     if (this.automationOn) {
         // Stop recurring timers
         clearInterval(this.saveRootCidInterval);
@@ -123,52 +127,48 @@ IpfsRepo.prototype.turnAutomationOff = function () {
         // Now give it a chance to finish any pending processing
         if (this.savingRootCid) {
             // Already saving root CID. Wait for it to finish
-            this.futTurnAutomationOff = new Future();
+            await new Promise(resolve => this.futTurnAutomationOff = {resolve});
 
-            this.futTurnAutomationOff.wait();
             this.futTurnAutomationOff = undefined;
         }
 
         if (this.retrievingRootCids) {
             // Already retrieving root CIDs. Wait for it to finish
-            this.futTurnAutomationOff = new Future();
+            await new Promise(resolve => this.futTurnAutomationOff = {resolve});
 
-            this.futTurnAutomationOff.wait();
             this.futTurnAutomationOff = undefined;
         }
 
         if (this.doingImmediateOCMsgDataRetrieval) {
             // Doing immediate retrieval of off-chain message data. Wait for it to finish
-            this.futEndImmediateRetrieval = new Future();
+            await new Promise(resolve => this.futEndImmediateRetrieval = {resolve});
 
-            this.futEndImmediateRetrieval.wait();
             this.futEndImmediateRetrieval = undefined;
         }
 
-        saveRootCid.call(this, (err) => {
-            if (err) {
-                CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS (during automation turnoff).', err);
-            }
-
-            retrieveRootCids.call(this, (err) => {
-                if (err) {
-                    CtnOCSvr.logger.ERROR('Error while retrieving updated IPFS repository root CIDs (during automation turnoff).', err);
-                }
-
-                // Indicate that automation is off
-                this.automationOn = false;
-                CtnOCSvr.logger.TRACE('IPFS repo automation turned off');
-                CtnOCSvr.app.setIpfsRepoAutomationOff();
-            });
+        // Finalize process (automation turn-off) asynchronously
+        saveRootCid.call(this)
+        .then(() => {
+            return retrieveRootCids.call(this);
+        }, (err) => {
+            CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS (during automation turnoff).', err);
+        })
+        .then(() => {
+            // Indicate that automation is off
+            this.automationOn = false;
+            CtnOCSvr.logger.TRACE('IPFS repo automation turned off');
+            CtnOCSvr.app.setIpfsRepoAutomationOff();
+        }, (err) => {
+            CtnOCSvr.logger.ERROR('Error while retrieving updated IPFS repository root CIDs (during automation turnoff).', err);
         });
     }
 };
 
-IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveImmediately = false, refDate) {
+IpfsRepo.prototype.saveOffChainMsgData = async function (data, msgDataRepo, retrieveImmediately = false, refDate) {
     let result;
 
     // Execute code in critical section to serialize calls
-    this.saveCS.execute(() => {
+    await this.saveCS.execute(async () => {
         const mtRefDate = moment(refDate).utc();
 
         if (!mtRefDate.isValid()) {
@@ -190,7 +190,7 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
             rootStat = undefined;
 
             try {
-                rootStat = this.ipfsClient.filesStat(path, {hash: true}, false);
+                rootStat = await this.ipfsClient.filesStat(path, {hash: true}, false);
             }
             catch (err) {
                 if (err._ipfsError instanceof Error) {
@@ -216,13 +216,13 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
         }
 
         // Write to IPFS
-        this.ipfsClient.filesWrite(path, data, {
+        await this.ipfsClient.filesWrite(path, data, {
             create: true,
             parents: true
         });
 
         result = {
-            cid: this.ipfsClient.filesStat(path, {hash: true}).cid.toString(),
+            cid: (await this.ipfsClient.filesStat(path, {hash: true})).cid.toString(),
             savedDate: mtRefDate.toISOString()
         };
 
@@ -233,14 +233,13 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
             dataType: msgDataRepo === IpfsRepo.offChainMsgDataRepo.msgEnvelope ? ctnOffChainLib.OffChainData.msgDataType.msgEnvelope.name : ctnOffChainLib.OffChainData.msgDataType.msgReceipt.name,
             savedDate: mtRefDate.toDate(),
             savedMicroseconds: microSecs
-        }, (err) => {
-            if (err) {
-                CtnOCSvr.logger.ERROR('Error trying to insert saved off-chain message data onto local database.', err);
-            }
+        })
+        .catch(err => {
+            CtnOCSvr.logger.ERROR('Error trying to insert saved off-chain message data onto local database.', err);
         });
 
         // Retrieve updated repository root CID
-        this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).cid.toString();
+        this.rootCid = (await this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true})).cid.toString();
 
         if (retrieveImmediately) {
             process.nextTick(this.boundRetrieveOffChainMsgDataImmediately)
@@ -250,13 +249,13 @@ IpfsRepo.prototype.saveOffChainMsgData = function (data, msgDataRepo, retrieveIm
     return result;
 };
 
-IpfsRepo.prototype.getRetriedOffChainMsgDataByCid = function (cid, includeSavedOnly = false) {
-    let retDoc = CtnOCSvr.db.collection.RetrievedOffChainMsgData.findOne({cid: cid});
+IpfsRepo.prototype.getRetriedOffChainMsgDataByCid = async function (cid, includeSavedOnly = false) {
+    let retDoc = await CtnOCSvr.db.collection.RetrievedOffChainMsgData.findOne({cid: cid});
 
     if (!retDoc && includeSavedOnly) {
         // No off-chain message data with the given CID has been retrieved yet. Try
         //  looking for off-chain message data saved by this Catenis node
-        retDoc = CtnOCSvr.db.collection.SavedOffChainMsgData.findOne({cid: cid});
+        retDoc = await CtnOCSvr.db.collection.SavedOffChainMsgData.findOne({cid: cid});
     }
 
     if (retDoc) {
@@ -270,7 +269,7 @@ IpfsRepo.prototype.getRetriedOffChainMsgDataByCid = function (cid, includeSavedO
     }
 };
 
-IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limit, skip) {
+IpfsRepo.prototype.listRetrievedOffChainMsgData = async function (retrievedAfter, limit, skip) {
     const query = {};
     const options = {
         projection: {
@@ -302,7 +301,7 @@ IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limi
         dataItems: [],
         hasMore: false
     };
-    const retDocs = CtnOCSvr.db.collection.RetrievedOffChainMsgData.find(query, options);
+    const retDocs = await CtnOCSvr.db.collection.RetrievedOffChainMsgData.find(query, options);
 
     if (retDocs.length > 0) {
         if (limit && retDocs.length > limit) {
@@ -331,12 +330,12 @@ IpfsRepo.prototype.listRetrievedOffChainMsgData = function (retrievedAfter, limi
 //      or .bind().
 //
 
-function initRootCid() {
+async function initRootCid() {
     this.rootCid = undefined;
     this.lastSavedRootCid = undefined;
 
     // Retrieve repository root CID last saved to CNS
-    const data = CtnOCSvr.cns.getIpfsRepoRootCid();
+    const data = await CtnOCSvr.cns.getIpfsRepoRootCid();
 
     if (data) {
         this.lastSavedRootCid = data.cid;
@@ -346,7 +345,7 @@ function initRootCid() {
     let rootStat;
 
     try {
-        rootStat = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}, false);
+        rootStat = await this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}, false);
     }
     catch (err) {
         if (err._ipfsError instanceof Error) {
@@ -370,155 +369,140 @@ function initRootCid() {
     else if (this.lastSavedRootCid) {
         // Repository root CID not found in IPFS node. Set it to last saved value
         CtnOCSvr.logger.WARN('Repository root directory (/root) not found in IPFS node. Setting it to root CID currently saved to CNS.');
-        this.ipfsClient.filesCp('ipfs/' + this.lastSavedRootCid, cfgSettings.rootDir);
+        await this.ipfsClient.filesCp('ipfs/' + this.lastSavedRootCid, cfgSettings.rootDir);
         this.rootCid = this.lastSavedRootCid;
     }
     else {
         // Repository root CID not found in IPFS node, and no value is saved to CNS.
         //  Define new root
         CtnOCSvr.logger.WARN('Repository root directory (/root) not found in IPFS node, and no root CID is currently saved to CNS. Creating a new (empty) root directory.');
-        this.ipfsClient.filesMkdir(cfgSettings.rootDir);
+        await this.ipfsClient.filesMkdir(cfgSettings.rootDir);
         this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).cid.toString();
     }
 }
 
-function saveRootCid(callback) {
+async function saveRootCid() {
     if (!this.savingRootCid) {
         CtnOCSvr.logger.TRACE('Executing procedure to save updated IPFS repository root CID');
         this.savingRootCid = true;
 
-        // Make sure that code runs in its own fiber
-        Future.task(() => {
-            // Check if root CID needs to be saved
-            if (this.rootCid !== this.lastSavedRootCid) {
-                CtnOCSvr.logger.TRACE('About to save updated IPFS repository root CID');
-                const rootCid = this.rootCid;
+        try {
+            await (async () => {
+                // Check if root CID needs to be saved
+                if (this.rootCid !== this.lastSavedRootCid) {
+                    CtnOCSvr.logger.TRACE('About to save updated IPFS repository root CID');
+                    const rootCid = this.rootCid;
 
-                // Pin root CID (and all its subdirectories) before saving it
-                if (this.lastSavedRootCid) {
-                    this.ipfsClient.pinUpdate(this.lastSavedRootCid, rootCid);
-                }
-                else {
-                    this.ipfsClient.pinAdd(rootCid);
-                }
+                    // Pin root CID (and all its subdirectories) before saving it
+                    if (this.lastSavedRootCid) {
+                        await this.ipfsClient.pinUpdate(this.lastSavedRootCid, rootCid);
+                    }
+                    else {
+                        await this.ipfsClient.pinAdd(rootCid);
+                    }
 
-                // Now, save it onto CNS
-                CtnOCSvr.cns.setIpfsRepoRootCid(rootCid);
-                this.lastSavedRootCid = rootCid;
-            }
-        }).resolve((err) => {
-            this.savingRootCid = false;
-
-            if (typeof callback === 'function') {
-                callback(err);
-            }
-            else {
-                if (err) {
-                    CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS.', err);
+                    // Now, save it onto CNS
+                    await CtnOCSvr.cns.setIpfsRepoRootCid(rootCid);
+                    this.lastSavedRootCid = rootCid;
                 }
+            })();
+        }
+        catch (err) {
+            CtnOCSvr.logger.ERROR('Error while saving IPFS repository root CID onto CNS.', err);
+        }
 
-                if (this.futTurnAutomationOff) {
-                    this.futTurnAutomationOff.return();
-                }
-            }
-        });
+        this.savingRootCid = false;
+
+        if (this.futTurnAutomationOff) {
+            this.futTurnAutomationOff.resolve();
+        }
     }
 }
 
-function retrieveRootCids(callback) {
+async function retrieveRootCids() {
     if (!this.retrievingRootCids) {
         CtnOCSvr.logger.TRACE('Executing procedure to retrieve root CID of IPFS repositories');
         this.retrievingRootCids = true;
 
-        // Make sure that code runs in its own fiber
-        Future.task(() => {
-            const refDate = new Date();
+        try {
+            await (async () => {
+                const refDate = new Date();
 
-            // Retrieve updated IPFS repository root CIDs
-            let updatedSince;
+                // Retrieve updated IPFS repository root CIDs
+                let updatedSince;
+                const lastIpfsRepoRootCidsRetrievalDate = await CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate;
 
-            if (CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate) {
-                updatedSince = moment(CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate).subtract(cfgSettings.cnsTimeDelay, 'ms').toDate();
-            }
-
-            const ipfsRepoRootCids = CtnOCSvr.cns.getAllIpfsRepoRootCids(updatedSince);
-
-            if (ipfsRepoRootCids) {
-                CtnOCSvr.logger.TRACE('About to retrieve off-chain message data from updated IPFS repositories');
-                CtnOCSvr.logger.DEBUG('>>>>>> [retrieveRootCids] IPFS repo root CIDs updated since %s (last retrieval date: %s)', updatedSince, CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate, ipfsRepoRootCids);
-                // Add reference date to each returned repo root
-                Object.values(ipfsRepoRootCids).forEach(repoRoot => repoRoot.refDate = refDate);
-
-                // Retrieve off-chain message data from IPFS repository of each Catenis node
-                const fut = new Future();
-
-                async.eachOf(ipfsRepoRootCids, this.boundRetrieveOffChainMsgData, fut.resolver());
-
-                fut.wait();
-            }
-
-            // Update IPFS repository root CIDs retrieval date
-            CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate = refDate;
-        }).resolve((err) => {
-            this.retrievingRootCids = false;
-
-            if (typeof callback === 'function') {
-                callback(err);
-            }
-            else {
-                if (err) {
-                    CtnOCSvr.logger.ERROR('Error while retrieving updated IPFS repository root CIDs.', err);
+                if (lastIpfsRepoRootCidsRetrievalDate) {
+                    updatedSince = moment(lastIpfsRepoRootCidsRetrievalDate).subtract(cfgSettings.cnsTimeDelay, 'ms').toDate();
                 }
 
-                if (this.futTurnAutomationOff) {
-                    this.futTurnAutomationOff.return();
+                const ipfsRepoRootCids = await CtnOCSvr.cns.getAllIpfsRepoRootCids(updatedSince);
+
+                if (ipfsRepoRootCids) {
+                    CtnOCSvr.logger.TRACE('About to retrieve off-chain message data from updated IPFS repositories');
+                    CtnOCSvr.logger.DEBUG('>>>>>> [retrieveRootCids] IPFS repo root CIDs updated since %s (last retrieval date: %s)', updatedSince, lastIpfsRepoRootCidsRetrievalDate, ipfsRepoRootCids);
+                    // Add reference date to each returned repo root
+                    Object.values(ipfsRepoRootCids).forEach(repoRoot => repoRoot.refDate = refDate);
+
+                    // Retrieve off-chain message data from IPFS repository of each Catenis node
+                    await async.eachOf(ipfsRepoRootCids, this.boundRetrieveOffChainMsgData);
                 }
-            }
-        });
+
+                // Update IPFS repository root CIDs retrieval date
+                CtnOCSvr.app.lastIpfsRepoRootCidsRetrievalDate = refDate;
+                await CtnOCSvr.app.promiseSetlastIpfsRepoRootCidsRetrievalDate;
+            })();
+        }
+        catch (err) {
+            CtnOCSvr.logger.ERROR('Error while retrieving updated IPFS repository root CIDs.', err);
+        }
+
+        this.retrievingRootCids = false;
+
+        if (this.futTurnAutomationOff) {
+            this.futTurnAutomationOff.resolve();
+        }
     }
 }
 
-function retrieveOffChainMsgDataImmediately() {
+async function retrieveOffChainMsgDataImmediately() {
     if (!this.doingImmediateOCMsgDataRetrieval) {
         CtnOCSvr.logger.TRACE('Executing procedure to retrieve off-chain message data immediately');
         this.doingImmediateOCMsgDataRetrieval = true;
 
         // Make sure that code runs in its own fiber
-        Future.task(() => {
-            retrieveOffChainMsgData.call(this, {cid: this.rootCid, refDate: new Date()}, ctnNode.index);
-        }).resolve((err) => {
-            this.doingImmediateOCMsgDataRetrieval = false;
+        try {
+            await retrieveOffChainMsgData.call(this, {cid: this.rootCid, refDate: new Date()}, ctnNode.index);
+        }
+        catch (err) {
+            CtnOCSvr.logger.ERROR('Error while retrieving off-chain message data immediately.', err);
+        }
 
-            if (err) {
-                CtnOCSvr.logger.ERROR('Error while retrieving off-chain message data immediately.', err);
-            }
+        this.doingImmediateOCMsgDataRetrieval = false;
 
-            if (this.futEndImmediateRetrieval) {
-                this.retrieveOCMsgDataImmediatedlyAgain = false;
+        if (this.futEndImmediateRetrieval) {
+            this.retrieveOCMsgDataImmediatedlyAgain = false;
 
-                this.futEndImmediateRetrieval.return();
-            }
-            else if (this.retrieveOCMsgDataImmediatedlyAgain) {
-                this.retrieveOCMsgDataImmediatedlyAgain = false;
+            this.futEndImmediateRetrieval.resolve();
+        }
+        else if (this.retrieveOCMsgDataImmediatedlyAgain) {
+            this.retrieveOCMsgDataImmediatedlyAgain = false;
 
-                process.nextTick(this.boundRetrieveOffChainMsgDataImmediately);
-            }
-        });
+            process.nextTick(this.boundRetrieveOffChainMsgDataImmediately);
+        }
     }
     else {
         this.retrieveOCMsgDataImmediatedlyAgain = true;
     }
 }
 
-function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
+async function retrieveOffChainMsgData(repoRoot, ctnNodeIdx) {
     if (typeof ctnNodeIdx !== 'number') {
         ctnNodeIdx = Number.parseInt(ctnNodeIdx);
     }
 
-    let innerCallback = callback;
-
-    const doRetrieval = () => {
-        const docIpfsRepoScan = CtnOCSvr.db.collection.IpfsRepoScan.findOne({
+    const doRetrieval = async () => {
+        const docIpfsRepoScan = await CtnOCSvr.db.collection.IpfsRepoScan.findOne({
             ctnNodeIdx: ctnNodeIdx,
             repoSubtype: IpfsRepo.repoSubtype.offChainMsgData.name
         }, {
@@ -530,7 +514,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
         });
 
         const lastScannedPath = docIpfsRepoScan ? docIpfsRepoScan.lastScannedPath : undefined;
-        const scannedPaths = scanRepoPath.call(this, IpfsRepo.repoSubtype.offChainMsgData, repoRoot.cid, lastScannedPath);
+        const scannedPaths = await scanRepoPath.call(this, IpfsRepo.repoSubtype.offChainMsgData, repoRoot.cid, lastScannedPath);
         CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Paths to scan', {
             repoRoot,
             ctnNodeIdx,
@@ -548,7 +532,7 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
             const docsRetrievedOffChainMsgDataToInsert = [];
 
             // noinspection DuplicatedCode
-            async.eachOf(scannedPaths, (path, idx, cb1) => {
+            await async.eachOf(scannedPaths, async (path, idx) => {
                 let pathParts = path.substring(subtypeRootPath.length).split('/');
                 pathParts.shift();
                 pathParts = pathParts.map((part, idx) => {
@@ -558,14 +542,14 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                     return idx === 1 ? val - 1 : val;
                 });
 
-                async.parallel([
-                    (cb2) => {
+                await async.parallel([
+                    async () => {
                         // Scan off-chain message envelope files in path
                         lastMsgEnvelope = null;
                         let fileEntries;
 
                         try {
-                            fileEntries = this.ipfsClient.ls(path + IpfsRepo.offChainMsgDataRepo.msgEnvelope.subDir, false);
+                            fileEntries = await this.ipfsClient.ls(path + IpfsRepo.offChainMsgDataRepo.msgEnvelope.subDir, false);
                         }
                         catch (err) {
                             if (err._ipfsError instanceof Error) {
@@ -574,12 +558,12 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                     // An error other than one that indicates that path does not exist.
                                     //  Log error and rethrow it
                                     CtnOCSvr.logger.DEBUG(err.message, err._ipfsError);
-                                    process.nextTick(cb2, err);
+                                    throw err;
                                 }
                             }
                             else {
                                 // Any other error. Just rethrow it
-                                process.nextTick(cb2, err);
+                                throw err;
                             }
                         }
 
@@ -599,49 +583,39 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
                             const maxFileEntriesIdx = fileEntries.length - 1;
 
-                            async.eachOf(fileEntries, (fileEntry, idx, cb3) => {
+                            await async.eachOf(fileEntries, async (fileEntry, idx) => {
                                 if (idx === maxFileEntriesIdx) {
                                     lastMsgEnvelope = fileEntry.name;
                                 }
 
                                 // Retrieve off-chain message envelope contents
-                                this.ipfsClient.cat(fileEntry.cid, (err, msgEnvelopeData) => {
-                                    if (err) {
-                                        cb3(err);
-                                    }
-                                    else {
-                                        // Save retrieved off-chain message envelope
-                                        const savedDate = dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgEnvelope.filenamePrefix, fileEntry.name);
+                                const msgEnvelopeData = await this.ipfsClient.cat(fileEntry.cid);
 
-                                        docsRetrievedOffChainMsgDataToInsert.push({
-                                            ctnNodeIdx: ctnNodeIdx,
-                                            cid: fileEntry.cid.toString(),
-                                            data: new mongodb.Binary(msgEnvelopeData),
-                                            dataType: ctnOffChainLib.OffChainData.msgDataType.msgEnvelope.name,
-                                            savedDate: savedDate.date,
-                                            savedMicroseconds: savedDate.microseconds,
-                                            retrievedDate: repoRoot.refDate
-                                        });
-                                        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Retrieved off-chain message envelope', {
-                                            offChainMsgEnvelope: docsRetrievedOffChainMsgDataToInsert[docsRetrievedOffChainMsgDataToInsert.length - 1]
-                                        });
+                                // Save retrieved off-chain message envelope
+                                const savedDate = dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgEnvelope.filenamePrefix, fileEntry.name);
 
-                                        cb3();
-                                    }
+                                docsRetrievedOffChainMsgDataToInsert.push({
+                                    ctnNodeIdx: ctnNodeIdx,
+                                    cid: fileEntry.cid.toString(),
+                                    data: new mongodb.Binary(msgEnvelopeData),
+                                    dataType: ctnOffChainLib.OffChainData.msgDataType.msgEnvelope.name,
+                                    savedDate: savedDate.date,
+                                    savedMicroseconds: savedDate.microseconds,
+                                    retrievedDate: repoRoot.refDate
                                 });
-                            }, cb2);
-                        }
-                        else {
-                            process.nextTick(cb2);
+                                CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Retrieved off-chain message envelope', {
+                                    offChainMsgEnvelope: docsRetrievedOffChainMsgDataToInsert[docsRetrievedOffChainMsgDataToInsert.length - 1]
+                                });
+                            });
                         }
                     },
-                    (cb2) => {
+                    async () => {
                         // Scan off-chain message receipt files in path
                         lastMsgReceipt = null;
                         let fileEntries;
 
                         try {
-                            fileEntries = this.ipfsClient.ls(path + IpfsRepo.offChainMsgDataRepo.msgReceipt.subDir, false);
+                            fileEntries = await this.ipfsClient.ls(path + IpfsRepo.offChainMsgDataRepo.msgReceipt.subDir, false);
                         }
                         catch (err) {
                             if (err._ipfsError instanceof Error) {
@@ -650,12 +624,12 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
                                     // An error other than one that indicates that path does not exist.
                                     //  Log error and rethrow it
                                     CtnOCSvr.logger.DEBUG(err.message, err._ipfsError);
-                                    cb2(err);
+                                    throw err;
                                 }
                             }
                             else {
                                 // Any other error. Just rethrow it
-                                cb2(err);
+                                throw err;
                             }
                         }
 
@@ -675,229 +649,177 @@ function retrieveOffChainMsgData(repoRoot, ctnNodeIdx, callback) {
 
                             const maxFileEntriesIdx = fileEntries.length - 1;
 
-                            async.eachOf(fileEntries, (fileEntry, idx, cb3) => {
+                            await async.eachOf(fileEntries, async (fileEntry, idx) => {
                                 if (idx === maxFileEntriesIdx) {
                                     lastMsgReceipt = fileEntry.name;
                                 }
 
                                 // Retrieve off-chain message receipt contents
-                                this.ipfsClient.cat(fileEntry.cid, (err, msgReceiptData) => {
-                                    if (err) {
-                                        cb3(err);
-                                    }
-                                    else {
-                                        // Save retrieved off-chain message receipt
-                                        const savedDate = dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgReceipt.filenamePrefix, fileEntry.name);
+                                const msgReceiptData = await this.ipfsClient.cat(fileEntry.cid);
 
-                                        docsRetrievedOffChainMsgDataToInsert.push({
-                                            ctnNodeIdx: ctnNodeIdx,
-                                            cid: fileEntry.cid.toString(),
-                                            data: new mongodb.Binary(msgReceiptData),
-                                            dataType: ctnOffChainLib.OffChainData.msgDataType.msgReceipt.name,
-                                            savedDate: savedDate.date,
-                                            savedMicroseconds: savedDate.microseconds,
-                                            retrievedDate: repoRoot.refDate
-                                        });
-                                        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Retrieved off-chain message receipt', {
-                                            offChainMsgEnvelope: docsRetrievedOffChainMsgDataToInsert[docsRetrievedOffChainMsgDataToInsert.length - 1]
-                                        });
+                                // Save retrieved off-chain message receipt
+                                const savedDate = dateFromPath(pathParts, IpfsRepo.offChainMsgDataRepo.msgReceipt.filenamePrefix, fileEntry.name);
 
-                                        cb3();
-                                    }
+                                docsRetrievedOffChainMsgDataToInsert.push({
+                                    ctnNodeIdx: ctnNodeIdx,
+                                    cid: fileEntry.cid.toString(),
+                                    data: new mongodb.Binary(msgReceiptData),
+                                    dataType: ctnOffChainLib.OffChainData.msgDataType.msgReceipt.name,
+                                    savedDate: savedDate.date,
+                                    savedMicroseconds: savedDate.microseconds,
+                                    retrievedDate: repoRoot.refDate
                                 });
-                            }, cb2);
-                        }
-                        else {
-                            process.nextTick(cb2);
+                                CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Retrieved off-chain message receipt', {
+                                    offChainMsgEnvelope: docsRetrievedOffChainMsgDataToInsert[docsRetrievedOffChainMsgDataToInsert.length - 1]
+                                });
+                            });
                         }
                     }
-                ], cb1);
-            }, (err) => {
-                if (err) {
-                    innerCallback(err);
-                }
-                else {
-                    async.parallel([
-                        (cb1) => {
-                            if (docsRetrievedOffChainMsgDataToInsert.length > 0) {
-                                CtnOCSvr.db.collection.RetrievedOffChainMsgData.insertMany(docsRetrievedOffChainMsgDataToInsert, {ordered: false}, (err, result) => {
-                                    let docsInserted = false;
-                                    let errorReturned = false;
+                ]);
+            });
 
-                                    if (err) {
-                                        if (err.name !== 'BulkWriteError') {
-                                            errorReturned = true;
-                                            cb1(err);
-                                        }
-                                        else {
-                                            docsInserted = err.result.nInserted > 0;
+            await async.parallel([
+                async () => {
+                    if (docsRetrievedOffChainMsgDataToInsert.length > 0) {
+                        let result;
+                        let docsInserted = false;
 
-                                            err.result.getWriteErrors().forEach(writeError => {
-                                                if (writeError.code === 11000) {
-                                                    // Duplicate key error. Log warning condition
-                                                    CtnOCSvr.logger.WARN('Retrieved off-chain message data already inserted onto local database.', writeError);
-                                                }
-                                                else {
-                                                    // Any other error. Log error condition
-                                                    CtnOCSvr.logger.ERROR('Error trying to insert retrieved off-chain message data onto local database.', writeError);
-                                                }
-                                            });
-                                        }
+                        try {
+                            result = await CtnOCSvr.db.collection.RetrievedOffChainMsgData.insertMany(docsRetrievedOffChainMsgDataToInsert, {ordered: false});
+                        }
+                        catch (err) {
+                            if (err.name !== 'BulkWriteError') {
+                                throw err;
+                            }
+                            else {
+                                docsInserted = err.result.nInserted > 0;
+
+                                err.result.getWriteErrors().forEach(writeError => {
+                                    if (writeError.code === 11000) {
+                                        // Duplicate key error. Log warning condition
+                                        CtnOCSvr.logger.WARN('Retrieved off-chain message data already inserted onto local database.', writeError);
                                     }
                                     else {
-                                        docsInserted = result.insertedCount > 0;
-                                    }
-
-                                    if (docsInserted) {
-                                        // Notify clients that new off-chain message data has been retrieved
-                                        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] About to send notification of new off-chain message data');
-                                        CtnOCSvr.clientNotifier.notifyNewOffChainMsgData();
-                                    }
-
-                                    if (!errorReturned) {
-                                        cb1();
+                                        // Any other error. Log error condition
+                                        CtnOCSvr.logger.ERROR('Error trying to insert retrieved off-chain message data onto local database.', writeError);
                                     }
                                 });
                             }
-                            else {
-                                cb1();
-                            }
-                        },
-                        (cb1) => {
-                            // Check if IPFS repo scan info needs to be saved/updated
-                            if (!lastScannedPath || scannedPaths.length > 1 || lastMsgEnvelope || lastMsgReceipt) {
-                                if (!docIpfsRepoScan) {
-                                    // Insert new IPFS repo scan database doc
-                                    CtnOCSvr.db.collection.IpfsRepoScan.insertOne({
-                                        ctnNodeIdx: ctnNodeIdx,
-                                        repoSubtype: IpfsRepo.repoSubtype.offChainMsgData.name,
-                                        lastScannedPath: scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length),
-                                        lastScannedFiles: {
-                                            offChainMsgData: {
-                                                envelope: lastMsgEnvelope,
-                                                receipt: lastMsgReceipt
-                                            }
-                                        }
-                                    }, cb1);
-                                    CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Saved last scanned info', {
-                                        lastScannedPath: scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length),
-                                        lastScannedFiles: {
-                                            offChainMsgData: {
-                                                envelope: lastMsgEnvelope,
-                                                receipt: lastMsgReceipt
-                                            }
-                                        }
+                        }
+
+                        if (result) {
+                            docsInserted = result.insertedCount > 0;
+                        }
+
+                        if (docsInserted) {
+                            // Notify clients that new off-chain message data has been retrieved
+                            CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] About to send notification of new off-chain message data');
+                            CtnOCSvr.clientNotifier.notifyNewOffChainMsgData();
+                        }
+                    }
+                },
+                async () => {
+                    // Check if IPFS repo scan info needs to be saved/updated
+                    if (!lastScannedPath || scannedPaths.length > 1 || lastMsgEnvelope || lastMsgReceipt) {
+                        if (!docIpfsRepoScan) {
+                            // Insert new IPFS repo scan database doc
+                            await CtnOCSvr.db.collection.IpfsRepoScan.insertOne({
+                                ctnNodeIdx: ctnNodeIdx,
+                                repoSubtype: IpfsRepo.repoSubtype.offChainMsgData.name,
+                                lastScannedPath: scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length),
+                                lastScannedFiles: {
+                                    offChainMsgData: {
+                                        envelope: lastMsgEnvelope,
+                                        receipt: lastMsgReceipt
+                                    }
+                                }
+                            });
+                            CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Saved last scanned info', {
+                                lastScannedPath: scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length),
+                                lastScannedFiles: {
+                                    offChainMsgData: {
+                                        envelope: lastMsgEnvelope,
+                                        receipt: lastMsgReceipt
+                                    }
+                                }
+                            });
+                        }
+                        else {
+                            // Update IPFS repo scan database doc
+                            const fieldsToUpdate = {};
+                            const actualLastScannedPath = scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length);
+
+                            if (actualLastScannedPath === lastScannedPath) {
+                                // Last scanned path did not change
+                                if (scannedPaths.length !== 1) {
+                                    CtnOCSvr.logger.WARN('Last scanned path that did not change is NOT the first scanned', {
+                                        scannedPaths,
+                                        lastScannedPath
                                     });
                                 }
-                                else {
-                                    // Update IPFS repo scan database doc
-                                    const fieldsToUpdate = {};
-                                    const actualLastScannedPath = scannedPaths[scannedPaths.length - 1].substring(subtypeRootPath.length);
 
-                                    if (actualLastScannedPath === lastScannedPath) {
-                                        // Last scanned path did not change
-                                        if (scannedPaths.length !== 1) {
-                                            CtnOCSvr.logger.WARN('Last scanned path that did not change is NOT the first scanned', {
-                                                scannedPaths,
-                                                lastScannedPath
-                                            });
-                                        }
+                                // Check for data file changes
+                                if (lastMsgEnvelope && lastMsgEnvelope !== lastScannedOffChainMsgEnvelope) {
+                                    fieldsToUpdate['lastScannedFiles.offChainMsgData.envelope'] = lastMsgEnvelope;
+                                }
 
-                                        // Check for data file changes
-                                        if (lastMsgEnvelope && lastMsgEnvelope !== lastScannedOffChainMsgEnvelope) {
-                                            fieldsToUpdate['lastScannedFiles.offChainMsgData.envelope'] = lastMsgEnvelope;
-                                        }
-
-                                        if (lastMsgReceipt && lastMsgReceipt !== lastScannedOffChainMsgReceipt) {
-                                            fieldsToUpdate['lastScannedFiles.offChainMsgData.receipt'] = lastMsgReceipt;
-                                        }
-                                    }
-                                    else {
-                                        // A new last scanned path
-                                        if (scannedPaths.length === 1) {
-                                            CtnOCSvr.logger.WARN('New last scanned path is the FIRST scanned path', {
-                                                scannedPaths,
-                                                lastScannedPath,
-                                                actualLastScannedPath
-                                            });
-                                        }
-
-                                        // Update path and data files as well
-                                        fieldsToUpdate.lastScannedPath = actualLastScannedPath;
-                                        fieldsToUpdate['lastScannedFiles.offChainMsgData.envelope'] = lastMsgEnvelope;
-                                        fieldsToUpdate['lastScannedFiles.offChainMsgData.receipt'] = lastMsgReceipt;
-                                    }
-
-                                    if (Object.keys(fieldsToUpdate).length > 0) {
-                                        CtnOCSvr.db.collection.IpfsRepoScan.updateOne({
-                                            _id: docIpfsRepoScan._id
-                                        }, {
-                                            $set: fieldsToUpdate
-                                        }, cb1);
-                                        CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Updated last scanned info', fieldsToUpdate);
-                                    }
-                                    else {
-                                        CtnOCSvr.logger.WARN('No fields to be updated for last scanned info', {
-                                            lastScannedPath,
-                                            lastMsgEnvelope,
-                                            lastMsgReceipt,
-                                            lastScannedOffChainMsgEnvelope,
-                                            lastScannedOffChainMsgReceipt
-                                        });
-                                    }
+                                if (lastMsgReceipt && lastMsgReceipt !== lastScannedOffChainMsgReceipt) {
+                                    fieldsToUpdate['lastScannedFiles.offChainMsgData.receipt'] = lastMsgReceipt;
                                 }
                             }
                             else {
-                                cb1();
+                                // A new last scanned path
+                                if (scannedPaths.length === 1) {
+                                    CtnOCSvr.logger.WARN('New last scanned path is the FIRST scanned path', {
+                                        scannedPaths,
+                                        lastScannedPath,
+                                        actualLastScannedPath
+                                    });
+                                }
+
+                                // Update path and data files as well
+                                fieldsToUpdate.lastScannedPath = actualLastScannedPath;
+                                fieldsToUpdate['lastScannedFiles.offChainMsgData.envelope'] = lastMsgEnvelope;
+                                fieldsToUpdate['lastScannedFiles.offChainMsgData.receipt'] = lastMsgReceipt;
+                            }
+
+                            if (Object.keys(fieldsToUpdate).length > 0) {
+                                await CtnOCSvr.db.collection.IpfsRepoScan.updateOne({
+                                    _id: docIpfsRepoScan._id
+                                }, {
+                                    $set: fieldsToUpdate
+                                });
+                                CtnOCSvr.logger.DEBUG('>>>>>> [retrieveOffChainMsgData] Updated last scanned info', fieldsToUpdate);
+                            }
+                            else {
+                                CtnOCSvr.logger.WARN('No fields to be updated for last scanned info', {
+                                    lastScannedPath,
+                                    lastMsgEnvelope,
+                                    lastMsgReceipt,
+                                    lastScannedOffChainMsgEnvelope,
+                                    lastScannedOffChainMsgReceipt
+                                });
                             }
                         }
-                    ], innerCallback);
+                    }
                 }
-            });
-        }
-        else {
-            process.nextTick(innerCallback);
+            ]);
         }
     };
 
     if (ctnNodeIdx === ctnNode.index) {
-        // Local Catenis node
-        let error;
-
-        try {
-            // Execute code in critical section to serialize retrieval
-            this.retrieveLocalOCMsgDataCS.execute(() => {
-                const fut = new Future();
-                innerCallback = fut.resolver();
-
-                doRetrieval();
-
-                fut.wait();
-            });
-        }
-        catch (err) {
-            error = err;
-        }
-
-        if (typeof callback === 'function') {
-            callback(error);
-        }
-        else if (error) {
-            throw error;
-        }
+        // Local Catenis node. Execute code in critical section to serialize retrieval
+        await this.retrieveLocalOCMsgDataCS.execute(async () => {
+            await doRetrieval();
+        });
     }
     else {
         // Any other Catenis node. Just do retrieval directly
-        try {
-            doRetrieval();
-        }
-        catch (err) {
-            process.nextTick(callback, err);
-        }
+        await doRetrieval();
     }
 }
 
-function scanRepoPath(repoSubtype, rootCid, lastScannedPath) {
+async function scanRepoPath(repoSubtype, rootCid, lastScannedPath) {
     const subtypeRootPath = rootCid + repoSubtype.subDir;
     let lastPathLevels = [];
 
@@ -911,24 +833,26 @@ function scanRepoPath(repoSubtype, rootCid, lastScannedPath) {
 
     const scannedPaths = [];
 
-    const scan = (path, level) => {
+    const scan = async (path, level) => {
         if (level > repoSubtype.pathDepth) {
             scannedPaths.push(path);
         }
         else {
-            let dirEntries = this.ipfsClient.ls(path, false);
+            let dirEntries = await this.ipfsClient.ls(path, false);
 
             if (lastScannedPath && lastScannedPath.startsWith(path)) {
                 // Accept only dirs that are newer than last level dir
                 dirEntries = dirEntries.filter(dirEntry => dirEntry.name >= lastPathLevels[level - 1]);
             }
 
-            dirEntries.forEach(dirEntry => scan(path + '/' + dirEntry.name, level + 1));
+            for (const dirEntry of dirEntries) {
+                await scan(path + '/' + dirEntry.name, level + 1);
+            }
         }
     };
     
     try {
-        scan(subtypeRootPath, 1);
+        await scan(subtypeRootPath, 1);
     }
     catch (err) {
         if (err._ipfsError instanceof Error) {
@@ -953,9 +877,11 @@ function scanRepoPath(repoSubtype, rootCid, lastScannedPath) {
 // IpfsRepo function class (public) methods
 //
 
-IpfsRepo.initialize = function () {
+IpfsRepo.initialize = async function () {
     CtnOCSvr.logger.TRACE('IpfsRepo initialization');
     CtnOCSvr.ipfsRepo = new IpfsRepo(CtnOCSvr.ipfsClient);
+
+    await CtnOCSvr.ipfsRepo.finalizeInitialization();
 };
 
 

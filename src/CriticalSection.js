@@ -10,7 +10,6 @@
 // Internal node modules
 //import util from 'util';
 // Third-party node modules
-import Future from 'fibers/future';
 
 export class CriticalSection {
     constructor () {
@@ -18,37 +17,34 @@ export class CriticalSection {
         this.waitingTasks = [];
     }
 
-    // CAUTION: a code being execute from one critical section object MUST NOT
+    // CAUTION: a code being executed from one critical section object MUST NOT
     //  execute another code from the same critical section object. In other words:
     //  CRITICAL SECTION EXECUTIONS MUST NOT BE NESTED.
-    execute(code) {
+    async execute(code) {
         try {
-            // Make sure code is executed in its own fiber, and wait until its execution ends
-            Future.task(() => {
-                if (this.processing) {
-                    // Already doing processing. Wait for current executing
-                    //  code to finish before proceeding
-                    const fut = new Future();
+            if (this.processing) {
+                // Already doing processing. Wait for current executing
+                //  code to finish before proceeding
+                await new Promise(resolve => this.waitingTasks.push({resolve}));
+            }
+            else {
+                // No processing currently underway. Indicate that processing started,
+                //  and continue to execute code
+                this.processing = true;
+            }
 
-                    this.waitingTasks.push(fut);
+            const result = code();
 
-                    fut.wait();
-                }
-                else {
-                    // No processing currently underway. Indicate that processing started,
-                    //  and continue to execute code
-                    this.processing = true;
-                }
-
-                code();
-            }).wait();
+            if (result instanceof Promise) {
+                await result;
+            }
         }
         finally {
             // Code has finished executing (either gracefully or with error).
             //  Check if there are other pieces of code waiting for execution
             if (this.waitingTasks.length > 0) {
                 // Release next code in queue for execution
-                this.waitingTasks.shift().return();
+                this.waitingTasks.shift().resolve();
             }
             else {
                 // No more code to execute. Just indicate that processing has ended

@@ -11,7 +11,6 @@
 //import util from 'util';
 // Third-party node modules
 import config from 'config';
-import Future from 'fibers/future';
 
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -72,16 +71,16 @@ export function Application() {
             enumerable: true
         },
         lastIpfsRepoRootCidsRetrievalDate: {
-            get: function () {
+            get: async function () {
                 let docApp;
 
                 // noinspection JSPotentiallyInvalidUsageOfThis
                 if (this.app_id) {
                     // noinspection JSPotentiallyInvalidUsageOfThis
-                    docApp = CtnOCSvr.db.collection.Application.findOne({_id: this.app_id}, {projection: {lastIpfsRepoRootCidsRetrievalDate: 1}});
+                    docApp = await CtnOCSvr.db.collection.Application.findOne({_id: this.app_id}, {projection: {lastIpfsRepoRootCidsRetrievalDate: 1}});
                 }
                 else {
-                    docApp = CtnOCSvr.db.collection.Application.findOne({}, {projection: {_id: 1, lastIpfsRepoRootCidsRetrievalDate: 1}});
+                    docApp = await CtnOCSvr.db.collection.Application.findOne({}, {projection: {_id: 1, lastIpfsRepoRootCidsRetrievalDate: 1}});
                     // noinspection JSPotentiallyInvalidUsageOfThis
                     this.app_id = docApp._id;
                 }
@@ -89,14 +88,16 @@ export function Application() {
                 return docApp.lastIpfsRepoRootCidsRetrievalDate !== null ? docApp.lastIpfsRepoRootCidsRetrievalDate : undefined;
             },
             set: function (value) {
-                // noinspection JSPotentiallyInvalidUsageOfThis
-                if (!this.app_id) {
+                this.promiseSetlastIpfsRepoRootCidsRetrievalDate = (async (val) => {
                     // noinspection JSPotentiallyInvalidUsageOfThis
-                    this.app_id = CtnOCSvr.db.collection.Application.findOne({}, {projection: {_id: 1}})._id;
-                }
+                    if (!this.app_id) {
+                        // noinspection JSPotentiallyInvalidUsageOfThis
+                        this.app_id = (await CtnOCSvr.db.collection.Application.findOne({}, {projection: {_id: 1}}))._id;
+                    }
 
-                // noinspection JSPotentiallyInvalidUsageOfThis
-                CtnOCSvr.db.collection.Application.updateOne({_id: this.app_id}, {$set: {lastIpfsRepoRootCidsRetrievalDate: value}});
+                    // noinspection JSPotentiallyInvalidUsageOfThis
+                    await CtnOCSvr.db.collection.Application.updateOne({_id: this.app_id}, {$set: {lastIpfsRepoRootCidsRetrievalDate: val}});
+                })(value);
             },
             enumerable: true
         }
@@ -178,14 +179,11 @@ function processShutdown() {
             // Wait for some time to make sure that all processing is finalized gracefully
             //  before turning off IPFS repository automation
             setTimeout(() => {
-                // Make sure that code runs in its own fiber
-                Future.task(() => {
-                    CtnOCSvr.ipfsRepo.turnAutomationOff()
-                }).detach();
+                CtnOCSvr.ipfsRepo.turnAutomationOff().catch(() => undefined);
             }, cfgSettings.shutdownTimeout);
         }
         else if (CtnOCSvr.ipfsRepo) {
-            CtnOCSvr.ipfsRepo.turnAutomationOff();
+            CtnOCSvr.ipfsRepo.turnAutomationOff().catch(() => undefined);
         }
 
         checkFinalizeShutdown.call(this);
@@ -202,18 +200,25 @@ function checkFinalizeShutdown() {
 }
 
 function finalizeShutdown() {
-    if (CtnOCSvr.db) {
-        try {
-            // Close database client
-            CtnOCSvr.db.close(true);
-        }
-        catch (err) {
-            CtnOCSvr.logger.ERROR('Error while closing database client.', err);
-        }
+    function exit() {
+        CtnOCSvr.logger.INFO('Exiting now');
+        process.exit(this.fatalError ? -1 : 0);
     }
 
-    CtnOCSvr.logger.INFO('Exiting now');
-    process.exit(this.fatalError ? -1 : 0);
+    if (CtnOCSvr.db) {
+        // Close database client before exiting
+        CtnOCSvr.db.close(true)
+        .catch(err => {
+            CtnOCSvr.logger.ERROR('Error while closing database client.', err);
+        })
+        .finally(() => {
+            exit();
+        });
+    }
+    else {
+        // Exit now
+        exit();
+    }
 }
 
 function shutdownWithError(err) {

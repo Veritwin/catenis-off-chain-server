@@ -17,7 +17,7 @@ import _und from 'underscore';
 import {CtnOCSvr} from './CtnOffChainSvr';
 import {CnsClient} from './CnsClient';
 import {ctnNode} from './CtnNode';
-import {syncDnsResolveTxt} from './Util';
+import {promDnsResolveTxt} from './Util';
 
 // Config entries
 const cnsConfig = config.get('ctnNameService');
@@ -66,23 +66,23 @@ export function CtnNameService() {
         }
     });
 
-    changeCnsInstance.call(this, true);
+    this.promiseInitInstanceChange = changeCnsInstance.call(this, true);
 }
 
 
 // Public CtnNameService object methods
 //
 
-CtnNameService.prototype.getIpfsRepoRootCid = function () {
-    return callMethod.call(this, 'getIpfsRepoRootCid', ctnNode.index);
+CtnNameService.prototype.getIpfsRepoRootCid = async function () {
+    return await callMethod.call(this, 'getIpfsRepoRootCid', ctnNode.index);
 };
 
-CtnNameService.prototype.getAllIpfsRepoRootCids = function (updatedSince) {
-    return callMethod.call(this, 'getAllIpfsRepoRootCids', updatedSince);
+CtnNameService.prototype.getAllIpfsRepoRootCids = async function (updatedSince) {
+    return await callMethod.call(this, 'getAllIpfsRepoRootCids', updatedSince);
 };
 
-CtnNameService.prototype.setIpfsRepoRootCid = function (cid) {
-    return callMethod.call(this, 'setIpfsRepoRootCid', ctnNode.index, cid);
+CtnNameService.prototype.setIpfsRepoRootCid = async function (cid) {
+    return await callMethod.call(this, 'setIpfsRepoRootCid', ctnNode.index, cid);
 };
 
 
@@ -92,9 +92,9 @@ CtnNameService.prototype.setIpfsRepoRootCid = function (cid) {
 //      or .bind().
 //
 
-function changeCnsInstance(reset) {
+async function changeCnsInstance(reset) {
     if (reset) {
-        const newCNSInstances = retrieveCNSInstances();
+        const newCNSInstances = await retrieveCNSInstances();
 
         if (newCNSInstances.length > 0) {
             this.cnsInstances = newCNSInstances;
@@ -146,20 +146,20 @@ function changeCnsInstance(reset) {
     }
 }
 
-function callMethod(methodName) {
+async function callMethod(methodName) {
     let result;
     let error;
     let iterations = 0;
     let cnsInstancesReset = false;
 
     if (!this.cnsConnection) {
-        changeCnsInstance.call(this, true);
+        await changeCnsInstance.call(this, true);
         cnsInstancesReset = true;
     }
 
     do {
         try {
-            result = this.cnsConnection[methodName].apply(this.cnsConnection, Array.prototype.slice.call(arguments, 1));
+            result = await this.cnsConnection[methodName].apply(this.cnsConnection, Array.prototype.slice.call(arguments, 1));
             error = undefined;
         }
         catch (err) {
@@ -169,7 +169,7 @@ function callMethod(methodName) {
 
         iterations++;
     }
-    while (error && changeCnsInstance.call(this, !cnsInstancesReset && iterations === 1));
+    while (error && await changeCnsInstance.call(this, !cnsInstancesReset && iterations === 1));
 
     if (error) {
         CtnOCSvr.logger.ERROR(util.format('Failed to call Catenis Name Server API method \'%s\'', methodName));
@@ -183,9 +183,11 @@ function callMethod(methodName) {
 // CtnNameService function class (public) methods
 //
 
-CtnNameService.initialize = function () {
+CtnNameService.initialize = async function () {
     CtnOCSvr.logger.TRACE('CtnNameService initialization');
     CtnOCSvr.cns = new CtnNameService();
+
+    await CtnOCSvr.cns.promiseInitInstanceChange;
 };
 
 
@@ -198,12 +200,12 @@ CtnNameService.initialize = function () {
 // Definition of module (private) functions
 //
 
-function retrieveCNSInstances() {
+async function retrieveCNSInstances() {
     const cnsInstances = [];
     let records;
 
     try {
-        records = syncDnsResolveTxt(cfgSettings.dnsRecName + '.' + CtnOCSvr.app.domainRoot);
+        records = await promDnsResolveTxt(cfgSettings.dnsRecName + '.' + CtnOCSvr.app.domainRoot);
     }
     catch (err) {
         CtnOCSvr.logger.ERROR('Error retrieving Catenis Name Server instances.', err);

@@ -13,7 +13,6 @@
 import config from 'config';
 import resError from 'restify-errors';
 import moment from 'moment';
-import Future from 'fibers/future';
 
 // References code in other (Catenis Name Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -54,8 +53,7 @@ export const cfgSettings = {
 //  }
 //
 export function getOffChainMsgData(req, res, next) {
-    // Make sure that code runs in its own fiber
-    Future.task(() => {
+    (async () => {
         if (res.claimUpgrade) {
             return new resError.ForbiddenError('Endpoint does not allow for connection upgrade');
         }
@@ -70,16 +68,14 @@ export function getOffChainMsgData(req, res, next) {
 
         res.send({
             status: 'success',
-            data: CtnOCSvr.ipfsRepo.listRetrievedOffChainMsgData(req.params.retrievedAfter, req.params.limit, req.params.skip)
+            data: await CtnOCSvr.ipfsRepo.listRetrievedOffChainMsgData(req.params.retrievedAfter, req.params.limit, req.params.skip)
         });
-    }).resolve((err, result) => {
-        if (err) {
-            CtnOCSvr.logger.ERROR('Error processing GET \'/msg-data\' API request.', err);
-            next(new resError.InternalServerError('Internal server error'));
-        }
-        else {
-            next(result);
-        }
+    })()
+    .then(result => {
+        next(result);
+    }, err => {
+        CtnOCSvr.logger.ERROR('Error processing GET \'/msg-data\' API request.', err);
+        next(new resError.InternalServerError('Internal server error'));
     });
 }
 

@@ -10,7 +10,6 @@
 // Internal node modules
 //import util from 'util';
 // Third-party node modules
-import Future from 'fibers/future';
 import dns from "dns";
 
 // References code in other (Catenis Off-Chain Server) modules
@@ -22,85 +21,41 @@ export function strictParseInt(val) {
     return Number.isInteger(val) ? val : (typeof val === 'string' && /^\d+$/.test(val) ? parseInt(val, 10) : NaN);
 }
 
-export const syncDnsResolveTxt = (() => {
-    const futFunc = Future.wrap(dns.resolveTxt);
-
-    return function syncDnsResolveTxt() {
-        return futFunc.apply(this, arguments).wait();
-    }
-})();
-
-// Note: this method was gotten from Meteor
-export function wrapAsync(fn, context) {
-    return function (/* arguments */) {
-        const self = context || this;
-        const newArgs = Array.prototype.slice.call(arguments);
+export function callbackToPromise(func, context) {
+    return function (...args) {
         let callback;
-        let i;
-
-        for (i = newArgs.length - 1; i >= 0; --i) {
-            const arg = newArgs[i];
-            const type = typeof arg;
-            if (type !== "undefined") {
-                if (type === "function") {
-                    callback = arg;
+        const result = new Promise((resolve, reject) => {
+            callback = (err, ...res) => {
+                if (err) {
+                    reject(err);
                 }
-                break;
+                else {
+                    resolve(res.length === 1 ? res[0] : res);
+                }
             }
-        }
+        });
 
-        let fut;
+        args.push(callback);
+        func.apply(context, args);
 
-        if (! callback) {
-            fut = new Future();
-            callback = fut.resolver();
-            ++i; // Insert the callback just after arg.
-        }
-
-        newArgs[i] = callback;
-        const result = fn.apply(self, newArgs);
-        return fut ? fut.wait() : result;
+        return result;
     };
 }
 
-export function wrapAsyncPromise(fn, context) {
-    return function (/* arguments */) {
-        return Future.fromPromise(fn.apply(context || this, Array.from(arguments))).wait();
-    };
-}
+export const promDnsResolveTxt = callbackToPromise(dns.resolveTxt);
 
-export function wrapAsyncIterable(fn, sink, context) {
-    return function (/* arguments */) {
-        return sink(fn.apply(context || this, Array.from(arguments)));
-    };
-}
-
-// Note: this should be used as a `sink` to Util.wrapAsyncIterable()
-export function asyncIterableToArray(it) {
+export async function asyncIterableToArray(it) {
     const arr = [];
-    const fut = new Future();
 
-    (async function () {
-        for await (let el of it) {
-            arr.push(el);
-        }
-
-        fut.return(arr);
-    })()
-    .catch((err) => {
-        if (!fut.isResolved()) {
-            fut.throw(err);
-        }
-    });
-
-    fut.wait();
+    for await (let el of it) {
+        arr.push(el);
+    }
 
     return arr;
 }
 
-// Note: this should be used as a `sink` to Util.wrapAsyncIterable()
-export function asyncIterableToBuffer(it) {
-    return Buffer.concat(asyncIterableToArray(it));
+export async function asyncIterableToBuffer(it) {
+    return Buffer.concat(await asyncIterableToArray(it));
 }
 
 export function formatNumber(n, d) {

@@ -21,8 +21,6 @@ const ipfsHttpClientLib = {
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
 import {
-    wrapAsyncPromise,
-    wrapAsyncIterable,
     asyncIterableToArray,
     asyncIterableToBuffer
 } from './Util';
@@ -51,174 +49,141 @@ export function IpfsClient(host, port, protocol) {
     this.ipfs = ipfsHttpClient(this.ipfsClientConfig);
 
     addMissingIpfsMethods.call(this);
-
-    // noinspection JSUnresolvedVariable
-    this.api = {
-        add: wrapAsyncIterable(this.ipfs.add, asyncIterableToArray, this.ipfs),
-        cat: wrapAsyncIterable(this.ipfs.cat, asyncIterableToBuffer, this.ipfs),
-        catReadableStream: wrapAsyncIterable(this.ipfs.cat, toStream.readable, this.ipfs),
-        id: wrapAsyncPromise(this.ipfs.id, this.ipfs),
-        ls: wrapAsyncIterable(this.ipfs.ls, asyncIterableToArray, this.ipfs),
-        files: {
-            ls: wrapAsyncIterable(this.ipfs.files.ls, asyncIterableToArray, this.ipfs),
-            mkdir: wrapAsyncPromise(this.ipfs.files.mkdir, this.ipfs),
-            stat: wrapAsyncPromise(this.ipfs.files.stat, this.ipfs),
-            cp: wrapAsyncPromise(this.ipfs.files.cp, this.ipfs),
-            write: wrapAsyncPromise(this.ipfs.files.write, this.ipfs),
-            rm: wrapAsyncPromise(this.ipfs.files.rm, this.ipfs, this.ipfs)
-        },
-        pin: {
-            add: wrapAsyncPromise(this.ipfs.pin.add, this.ipfs),
-            update: wrapAsyncPromise(this.ipfs.pin.update, this.ipfs),
-            rm: wrapAsyncPromise(this.ipfs.pin.rm, this.ipfs),
-            ls: wrapAsyncIterable(this.ipfs.pin.ls, asyncIterableToArray, this.ipfs)
-        }
-    };
 }
 
 
 // Public IpfsClient object methods
 //
 
-IpfsClient.prototype.add = function (data, options) {
+IpfsClient.prototype.add = async function (data, options) {
     try {
-        return this.api.add(data, options);
+        return await asyncIterableToArray(this.ipfs.add(data, options));
     }
     catch (err) {
         handleError('add', err);
     }
 };
 
-IpfsClient.prototype.cat = function (ipfsPath, callback) {
-    let result;
-
+IpfsClient.prototype.cat = async function (ipfsPath) {
     try {
-        result = this.api.cat(ipfsPath);
+        return await asyncIterableToBuffer(this.ipfs.cat(ipfsPath));
     }
     catch (err) {
-        handleError('cat', err, undefined, callback);
-        return;
-    }
-
-    if (callback) {
-        callback(null, result);
-    }
-    else {
-        return result;
+        handleError('cat', err);
     }
 };
 
 IpfsClient.prototype.catReadableStream = function (ipfsPath) {
     try {
-        return this.api.catReadableStream(ipfsPath);
+        return toStream.readable(this.ipfs.cat(ipfsPath));
     }
     catch (err) {
         handleError('catReadableStream', err);
     }
 };
 
-IpfsClient.prototype.id = function () {
+IpfsClient.prototype.id = async function () {
     try {
-        return this.api.id();
+        return await this.ipfs.id();
     }
     catch (err) {
         handleError('id', err);
     }
 };
 
-IpfsClient.prototype.ls = function (ipfsPath, logError = false) {
+IpfsClient.prototype.ls = async function (ipfsPath, logError = false) {
     try {
-        return this.api.ls(ipfsPath);
+        return await asyncIterableToArray(this.ipfs.ls(ipfsPath));
     }
     catch (err) {
         handleError('ls', err, logError);
     }
 };
 
-IpfsClient.prototype.filesLs = function (path, options) {
+IpfsClient.prototype.filesLs = async function (path, options) {
     try {
-        return this.api.files.ls(path, options);
+        return await asyncIterableToArray(this.ipfs.files.ls(path, options));
     }
     catch (err) {
         handleError('filesLs', err);
     }
 };
 
-IpfsClient.prototype.filesMkdir = function (path, options) {
+IpfsClient.prototype.filesMkdir = async function (path, options) {
     try {
-        return this.api.files.mkdir(path, options);
+        return await this.ipfs.files.mkdir(path, options);
     }
     catch (err) {
         handleError('filesMkdir', err);
     }
 };
 
-IpfsClient.prototype.filesStat = function (path, options, logError = false) {
+IpfsClient.prototype.filesStat = async function (path, options, logError = false) {
     try {
-        return this.api.files.stat(path, options);
+        return await this.ipfs.files.stat(path, options);
     }
     catch (err) {
         handleError('filesStat', err, logError);
     }
 };
 
-IpfsClient.prototype.filesCp = function (from, to, options) {
+IpfsClient.prototype.filesCp = async function (from, to, options) {
     try {
-        return this.api.files.cp(from, to, options);
+        return await this.ipfs.files.cp(from, to, options);
     }
     catch (err) {
         handleError('filesCp', err);
     }
 };
 
-IpfsClient.prototype.filesWrite = function (path, content, options) {
+IpfsClient.prototype.filesWrite = async function (path, content, options) {
     try {
-        return this.api.files.write(path, content, options);
+        return await this.ipfs.files.write(path, content, options);
     }
     catch (err) {
         handleError('filesWrite', err);
     }
 };
 
-IpfsClient.prototype.filesRm = function (path, options) {
+IpfsClient.prototype.filesRm = async function (path, options) {
     try {
-        return this.api.files.rm(path, options);
+        return await this.ipfs.files.rm(path, options);
     }
     catch (err) {
         handleError('filesRm', err);
     }
 };
 
-IpfsClient.prototype.pinAdd = function (hash, options) {
+IpfsClient.prototype.pinAdd = async function (hash, options) {
     try {
-        return this.api.pin.add(hash, options);
+        return await this.ipfs.pin.add(hash, options);
     }
     catch (err) {
         handleError('pinAdd', err);
     }
 };
 
-IpfsClient.prototype.pinUpdate = function (fromHash, toHash, options) {
+IpfsClient.prototype.pinUpdate = async function (fromHash, toHash, options) {
     try {
-        return this.api.pin.update(fromHash, toHash, options);
+        return await this.ipfs.pin.update(fromHash, toHash, options);
     }
     catch (err) {
         handleError('pinUpdate', err);
     }
 };
 
-IpfsClient.prototype.pinRm = function (hash, options) {
+IpfsClient.prototype.pinRm = async function (hash, options) {
     try {
-        return this.api.pin.rm(hash, options);
+        return await this.ipfs.pin.rm(hash, options);
     }
     catch (err) {
         handleError('pinRm', err);
     }
 };
 
-IpfsClient.prototype.pinLs = function (hash, options) {
+IpfsClient.prototype.pinLs = async function (hash, options) {
     try {
-        return this.api.pin.ls(hash, options);
+        return await asyncIterableToArray(this.ipfs.pin.ls(hash, options));
     }
     catch (err) {
         handleError('pinLs', err);

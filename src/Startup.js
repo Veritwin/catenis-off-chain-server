@@ -12,7 +12,6 @@ import fs from 'fs';
 import path from 'path';
 // Third-party node modules
 import config from 'config';
-import Future from 'fibers/future';
 
 // References code in other (Catenis Off-Chain Server) modules
 import {CtnOCSvr} from './CtnOffChainSvr';
@@ -49,16 +48,16 @@ function saveProcessId() {
 // Module code
 //
 
-Future.task(function mainTask() {
+(async function mainTask() {
     CtnOCSvr.logger.TRACE('Starting application');
     // Record ID of current process
     saveProcessId();
 
     Application.initialize();
-    Database.initialize();
-    CtnNameService.initialize();
+    await Database.initialize();
+    await CtnNameService.initialize();
     IpfsClient.initialize();
-    IpfsRepo.initialize();
+    await IpfsRepo.initialize();
     ClientNotification.initialize();
     RestApi.initialize();
-}).detach();
+})();
