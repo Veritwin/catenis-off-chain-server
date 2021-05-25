@@ -200,9 +200,9 @@ function checkFinalizeShutdown() {
 }
 
 function finalizeShutdown() {
-    function exit() {
+    function exit(fatalError) {
         CtnOCSvr.logger.INFO('Exiting now');
-        process.exit(this.fatalError ? -1 : 0);
+        process.exit(fatalError ? -1 : 0);
     }
 
     if (CtnOCSvr.db) {
@@ -212,12 +212,12 @@ function finalizeShutdown() {
             CtnOCSvr.logger.ERROR('Error while closing database client.', err);
         })
         .finally(() => {
-            exit();
+            exit(this.fatalError);
         });
     }
     else {
         // Exit now
-        exit();
+        exit(this.fatalError);
     }
 }
 
