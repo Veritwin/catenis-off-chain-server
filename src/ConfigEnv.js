@@ -9,10 +9,11 @@
 //
 // Internal node modules
 import path from 'path';
+import url from 'url';
 // Third-party node modules
 
 // References code in other (Catenis Off-Chain Server) modules
-import {fixIt as fixMoment} from './FixMoment';
+import {fixIt as fixMoment} from './FixMoment.js';
 
 
 // Module code
@@ -22,6 +23,7 @@ import {fixIt as fixMoment} from './FixMoment';
 fixMoment();
 
 // Set application root directory
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 global.CTN_OC_SVR_ROOT_DIR = path.join(__dirname, '..');
 
 // Set config directory

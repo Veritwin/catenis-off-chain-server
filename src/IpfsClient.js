@@ -13,17 +13,19 @@ import util from 'util';
 import config from 'config';
 import toStream from 'it-to-stream';
 import ipfsHttpClient from 'ipfs-http-client';
+import ihcConfig from 'ipfs-http-client/src/lib/configure.js';
+import ihcSearchParams from 'ipfs-http-client/src/lib/to-url-search-params.js';
 const ipfsHttpClientLib = {
-    configure: require('ipfs-http-client/src/lib/configure'),
-    toUrlSearchParams: require('ipfs-http-client/src/lib/to-url-search-params')
+    configure: ihcConfig,
+    toUrlSearchParams: ihcSearchParams
 };
 
 // References code in other (Catenis Off-Chain Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
 import {
     asyncIterableToArray,
     asyncIterableToBuffer
-} from './Util';
+} from './Util.js';
 
 // Config entries
 const ipfsClientConfig = config.get('ipfsClient');

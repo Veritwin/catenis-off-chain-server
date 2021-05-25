@@ -15,9 +15,9 @@ import restifyClients from 'restify-clients';
 import httpSignature from 'http-signature';
 
 // References code in other (Catenis Name Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
-import {ctnNode} from './CtnNode';
-import {callbackToPromise} from './Util';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
+import {ctnNode} from './CtnNode.js';
+import {callbackToPromise} from './Util.js';
 
 // Config entries
 const cnsClientConfig = config.get('cnsClient');

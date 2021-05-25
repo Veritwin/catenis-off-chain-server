@@ -18,9 +18,9 @@ import 'winston-mail';
 import {LEVEL} from 'triple-beam';
 
 // References code in other (Catenis Off-Chain Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
-import {cfgSettings as emailCfgSettings} from './ConfigEmail';
-import {ctnNode} from './CtnNode';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
+import {cfgSettings as emailCfgSettings} from './ConfigEmail.js';
+import {ctnNode} from './CtnNode.js';
 
 // Config entries
 const loggerConfig = config.get('logger');

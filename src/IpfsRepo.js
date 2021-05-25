@@ -17,10 +17,10 @@ import mongodb from 'mongodb';
 import ctnOffChainLib from 'catenis-off-chain-lib';
 
 // References code in other (Catenis Name Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
-import {CriticalSection} from './CriticalSection';
-import {formatNumber} from './Util';
-import {ctnNode} from './CtnNode';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
+import {CriticalSection} from './CriticalSection.js';
+import {formatNumber} from './Util.js';
+import {ctnNode} from './CtnNode.js';
 
 // Config entries
 const ipfsRepoConfig = config.get('ipfsRepo');

@@ -2,13 +2,14 @@
  * Created by claudio on 2019-11-20
  */
 
-import {expect} from 'chai';
+import chai from 'chai';
+const {expect} = chai;
 
-import './init/Setup';
-import {CtnOCSvr} from '../src/CtnOffChainSvr';
-import {Application} from '../src/Application';
-import {Database} from '../src/Database';
-import {CtnNameService} from '../src/CtnNameService';
+import './init/Setup.js';
+import {CtnOCSvr} from '../src/CtnOffChainSvr.js';
+import {Application} from '../src/Application.js';
+import {Database} from '../src/Database.js';
+import {CtnNameService} from '../src/CtnNameService.js';
 
 describe.skip('Catenis Name Service', function (done) {
     let newCid;

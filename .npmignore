@@ -2,8 +2,6 @@
 /bin/
 /dist/
 /log/
-/src/
-.babelrc
 /config/*development*.json5
 /config/*sandbox*.json5
 /test

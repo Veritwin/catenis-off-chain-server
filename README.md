@@ -2,16 +2,6 @@
 
 REST API service for sending and receiving Catenis off-chain messages.
 
-## Building the application
-
-To build the application, issue the following commands:
-
-```shell
-nvm use
-npm i
-npm run build
-```
-
 ## Deploying the application
 
 To deploy the application, issue the command:
@@ -24,7 +14,7 @@ A tarball named `catenis-off-chain-server-<version>.tgz` is written to the `dist
 
 > **Note**: if deploying the application for a non-production environment (i.e., *sandbox* or *development*), use the
  appropriate alternative npm script (i.e., `predeploy-sandbox` or `predeploy-dev`). In that case, the tarball is written
- to a corresponding subdirectory (i.e., `div/sandbox` or `dist/dev`).
+ to a corresponding subdirectory (i.e., `dist/sandbox` or `dist/dev`).
 
 Copy the tarball to the target host and extract its contents, renaming the top-level directory of the extracted contents
  from `package` to `CtnOCSvr`.
@@ -45,10 +35,10 @@ npm i
 
 ## Starting the application
 
-To start the application, issue the following command:
+To start the application, issue the following command from the application's top-level directory (`CtnOCSvr`):
 
 ```shell
-env NODE_CONFIG_ENV='<environment>' MONGO_URL='mongodb://<host>[:<port>]/<db_name>' node build/main.js
+nvm use && env NODE_CONFIG_ENV='<environment>' MONGO_URL='mongodb://<host>[:<port>]/<db_name>' node .
 ```
 
 > **Note 1**: the term `<environment>` should be replaced with the appropriate deployment environment; either
@@ -59,7 +49,7 @@ env NODE_CONFIG_ENV='<environment>' MONGO_URL='mongodb://<host>[:<port>]/<db_nam
  default port (27017) is used. If this environment variable is not set, the settings found in the configuration files
  are used, where the default is: `mongodb://localhost/CtnOCSvr`.
 
-> **Note 3**: if the application is installed as a global Node.js package, replace `node build/main.js` with `ctnocsvr`.
+> **Note 3**: if the application is installed as a global Node.js package, replace `node .` with `ctnocsvr`.
 
 ## How it works
 

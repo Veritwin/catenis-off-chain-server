@@ -14,10 +14,10 @@ import config from 'config';
 import _und from 'underscore';
 
 // References code in other (Catenis Name Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
-import {CnsClient} from './CnsClient';
-import {ctnNode} from './CtnNode';
-import {promDnsResolveTxt} from './Util';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
+import {CnsClient} from './CnsClient.js';
+import {ctnNode} from './CtnNode.js';
+import {promDnsResolveTxt} from './Util.js';
 
 // Config entries
 const cnsConfig = config.get('ctnNameService');

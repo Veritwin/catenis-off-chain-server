@@ -14,7 +14,7 @@ import config from 'config';
 import mongodb from 'mongodb';
 
 // References code in other (Catenis Off-Chain Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
 
 // Config entries
 const dbConfig = config.get('database');

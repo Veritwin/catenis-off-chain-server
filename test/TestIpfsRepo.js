@@ -2,16 +2,17 @@
  * Created by claudio on 2019-11-27
  */
 
-import {expect} from 'chai';
+import chai from 'chai';
+const {expect} = chai;
 
-import './init/Setup';
-import {CtnOCSvr} from '../src/CtnOffChainSvr';
-import {Application} from '../src/Application';
-import {Database} from '../src/Database';
-import {CtnNameService} from '../src/CtnNameService';
-import {IpfsClient} from '../src/IpfsClient';
-import {IpfsRepo} from '../src/IpfsRepo';
-import {ctnNode} from '../src/CtnNode';
+import './init/Setup.js';
+import {CtnOCSvr} from '../src/CtnOffChainSvr.js';
+import {Application} from '../src/Application.js';
+import {Database} from '../src/Database.js';
+import {CtnNameService} from '../src/CtnNameService.js';
+import {IpfsClient} from '../src/IpfsClient.js';
+import {IpfsRepo} from '../src/IpfsRepo.js';
+import {ctnNode} from '../src/CtnNode.js';
 
 describe.skip('IPFS Repository', function (done) {
     let newCid;

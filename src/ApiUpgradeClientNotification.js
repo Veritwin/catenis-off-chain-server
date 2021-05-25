@@ -13,7 +13,7 @@
 import resError from 'restify-errors';
 
 // References code in other (Catenis Name Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
 
 
 // Definition of module (private) functions

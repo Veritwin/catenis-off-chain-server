@@ -15,8 +15,8 @@ import resError from 'restify-errors';
 import moment from 'moment';
 
 // References code in other (Catenis Name Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
-import {strictParseInt} from './Util';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
+import {strictParseInt} from './Util.js';
 
 // Config entries
 const apiConfig = config.get('apiGetOffChainMsgData');

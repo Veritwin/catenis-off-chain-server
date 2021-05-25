@@ -3,8 +3,10 @@
  */
 
 import stream from 'stream';
-import {expect} from 'chai';
-import {CID} from 'ipfs-http-client';
+import chai from 'chai';
+const {expect} = chai;
+import ihc from 'ipfs-http-client';
+const {CID} = ihc;
 import {IpfsClient} from '../src/IpfsClient.js';
 
 describe('IPFS Client', function (done) {

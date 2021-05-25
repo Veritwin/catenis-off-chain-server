@@ -13,7 +13,7 @@
 import config from 'config';
 
 // References code in other (Catenis Off-Chain Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
 
 // Config entries
 const appConfig = config.get('application');

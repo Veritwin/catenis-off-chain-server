@@ -13,7 +13,7 @@ import config from 'config';
 import WebSocket from 'ws';
 
 // References code in other (Catenis Off-Chain Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
 
 // Config entries
 const clientNtfyConfig = config.get('clientNotification');

@@ -2,8 +2,9 @@
  * Created by claudio on 2021-05-20
  */
 
-import {expect} from 'chai';
-import {CriticalSection} from '../src/CriticalSection';
+import chai from 'chai';
+const {expect} = chai;
+import {CriticalSection} from '../src/CriticalSection.js';
 
 describe('Critical Section', function (done) {
     let cs;

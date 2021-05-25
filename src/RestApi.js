@@ -16,13 +16,13 @@ import resError from 'restify-errors';
 import httpSignature from 'http-signature';
 
 // References code in other (Catenis Off-Chain Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
-import {ctnNode} from './CtnNode';
-import {saveOffChainMsgEnvelope} from './ApiSaveOffChainMsgEnvelope';
-import {saveOffChainMsgReceipt} from './ApiSaveOffChainMsgReceipt';
-import {getOffChainMsgData} from './ApiGetOffChainMsgData';
-import {getSingleOffChainMsgData} from './ApiGetSingleOffChainMsgData';
-import {upgradeClientNotification} from './ApiUpgradeClientNotification';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
+import {ctnNode} from './CtnNode.js';
+import {saveOffChainMsgEnvelope} from './ApiSaveOffChainMsgEnvelope.js';
+import {saveOffChainMsgReceipt} from './ApiSaveOffChainMsgReceipt.js';
+import {getOffChainMsgData} from './ApiGetOffChainMsgData.js';
+import {getSingleOffChainMsgData} from './ApiGetSingleOffChainMsgData.js';
+import {upgradeClientNotification} from './ApiUpgradeClientNotification.js';
 
 // Config entries
 const restApiConfig = config.get('restApi');

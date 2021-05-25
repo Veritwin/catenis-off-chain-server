@@ -14,8 +14,8 @@ import resError from 'restify-errors';
 import ctnOffChainLib from 'catenis-off-chain-lib';
 
 // References code in other (Catenis Off-Chain Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
-import {IpfsRepo} from './IpfsRepo';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
+import {IpfsRepo} from './IpfsRepo.js';
 
 
 // Definition of module (private) functions

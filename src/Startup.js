@@ -14,14 +14,14 @@ import path from 'path';
 import config from 'config';
 
 // References code in other (Catenis Off-Chain Server) modules
-import {CtnOCSvr} from './CtnOffChainSvr';
-import {Application} from './Application';
-import {Database} from './Database';
-import {CtnNameService} from './CtnNameService';
-import {IpfsClient} from './IpfsClient';
-import {IpfsRepo} from './IpfsRepo';
-import {ClientNotification} from './ClientNotification';
-import {RestApi} from './RestApi';
+import {CtnOCSvr} from './CtnOffChainSvr.js';
+import {Application} from './Application.js';
+import {Database} from './Database.js';
+import {CtnNameService} from './CtnNameService.js';
+import {IpfsClient} from './IpfsClient.js';
+import {IpfsRepo} from './IpfsRepo.js';
+import {ClientNotification} from './ClientNotification.js';
+import {RestApi} from './RestApi.js';
 
 // Config entries
 const startupConfig = config.get('startup');

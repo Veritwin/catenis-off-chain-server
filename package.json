@@ -2,20 +2,20 @@
   "name": "catenis-off-chain-server",
   "version": "1.1.1",
   "description": "REST API service for sending and receiving Catenis off-chain messages",
-  "main": "build/main.js",
+  "type": "module",
+  "main": "src/main.js",
+  "exports": "./src/main.js",
+  "bin": {
+    "ctnocsvr": "./src/main.js"
+  },
   "scripts": {
-    "cleanup-build": "rm -rf build/*",
     "cleanup-dist": "rm -f dist/$npm_package_name-$npm_package_version.tgz",
     "cleanup-dist-sandbox": "rm -f dist/sandbox/$npm_package_name-$npm_package_version.tgz",
     "cleanup-dist-dev": "rm -f dist/dev/$npm_package_name-$npm_package_version.tgz",
-    "cleanup": "npm run cleanup-build && npm run cleanup-dist",
-    "cleanup-sandbox": "npm run cleanup-build && npm run cleanup-dist-sandbox",
-    "cleanup-dev": "npm run cleanup-build && npm run cleanup-dist-dev",
-    "build": "npm run cleanup-build && babel src -d build && chmod u+x build/main.js",
-    "predeploy": "npm run cleanup && npm run build && bin/fixnpmignore.sh && npm pack && mv *.tgz dist/",
-    "predeploy-sandbox": "npm run cleanup-sandbox && npm run build && bin/fixnpmignore.sh sandbox && npm pack && bin/fixnpmignore.sh && mv *.tgz dist/sandbox",
-    "predeploy-dev": "npm run cleanup-dev && npm run build && bin/fixnpmignore.sh development && npm pack && bin/fixnpmignore.sh && mv *.tgz dist/dev",
-    "test": "env NODE_APP_INSTANCE=test mocha --require core-js/stable --require @babel/register"
+    "predeploy": "npm run cleanup-dist && bin/fixnpmignore.sh && npm pack && mv *.tgz dist/",
+    "predeploy-sandbox": "npm run cleanup-dist-sandbox && bin/fixnpmignore.sh sandbox && npm pack && bin/fixnpmignore.sh && mv *.tgz dist/sandbox",
+    "predeploy-dev": "npm run cleanup-dist-dev && bin/fixnpmignore.sh development && npm pack && bin/fixnpmignore.sh && mv *.tgz dist/dev",
+    "test": "env NODE_APP_INSTANCE=test mocha"
   },
   "keywords": [
     "Catenis",
@@ -23,15 +23,11 @@
     "server"
   ],
   "author": "Cláudio de Castro",
-  "private": true,
-  "bin": {
-    "ctnocsvr": "./build/main.js"
+  "engines": {
+    "node": ">=12.0.0"
   },
+  "private": true,
   "devDependencies": {
-    "@babel/cli": "^7.7.7",
-    "@babel/core": "^7.7.7",
-    "@babel/preset-env": "^7.7.7",
-    "@babel/register": "^7.7.7",
     "chai": "^4.2.0",
     "mocha": "^7.1.2"
   },
@@ -39,7 +35,6 @@
     "async": "^3.1.0",
     "catenis-off-chain-lib": "git+ssh://git@bitbucket.org/blockchainofthings/catenis-off-chain-lib.git#semver:^1.2.1",
     "config": "^3.2.4",
-    "core-js": "^3.4.1",
     "http-signature": "^1.3.1",
     "ipfs-http-client": "^44.0.3",
     "it-to-stream": "^0.1.1",
