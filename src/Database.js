@@ -192,7 +192,9 @@ Database.initialize = async function() {
                 opts: {
                     unique: true,
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }]
         },
@@ -206,7 +208,9 @@ Database.initialize = async function() {
                 opts: {
                     unique: true,
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }, {
                 fields: {
@@ -214,7 +218,9 @@ Database.initialize = async function() {
                 },
                 opts: {
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }, {
                 fields: {
@@ -222,7 +228,9 @@ Database.initialize = async function() {
                 },
                 opts: {
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }, {
                 fields: {
@@ -230,7 +238,9 @@ Database.initialize = async function() {
                 },
                 opts: {
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }]
         },
@@ -245,7 +255,9 @@ Database.initialize = async function() {
                 opts: {
                     unique: true,
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }, {
                 fields: {
@@ -253,7 +265,9 @@ Database.initialize = async function() {
                 },
                 opts: {
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }, {
                 fields: {
@@ -261,7 +275,9 @@ Database.initialize = async function() {
                 },
                 opts: {
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }, {
                 fields: {
@@ -269,7 +285,9 @@ Database.initialize = async function() {
                 },
                 opts: {
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }, {
                 fields: {
@@ -277,7 +295,9 @@ Database.initialize = async function() {
                 },
                 opts: {
                     background: true,
-                    w: 1
+                    writeConcern: {
+                        w: 1
+                    }
                 }
             }]
         }
