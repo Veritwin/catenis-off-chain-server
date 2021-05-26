@@ -395,7 +395,19 @@ async function saveRootCid() {
 
                     // Pin root CID (and all its subdirectories) before saving it
                     if (this.lastSavedRootCid) {
-                        await this.ipfsClient.pinUpdate(this.lastSavedRootCid, rootCid);
+                        try {
+                            await this.ipfsClient.pinUpdate(this.lastSavedRootCid, rootCid);
+                        }
+                        catch (err) {
+                            if ((err._ipfsError instanceof Error) && err._ipfsError.message === 'pin is not part of the pinset') {
+                                // Previous root CID does not seem to have been pinned.
+                                //  So just pin new root CID (instead of updating it)
+                                await this.ipfsClient.pinAdd(rootCid);
+                            }
+                            else {
+                                throw err;
+                            }
+                        }
                     }
                     else {
                         await this.ipfsClient.pinAdd(rootCid);
