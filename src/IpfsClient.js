@@ -59,7 +59,7 @@ export function IpfsClient(host, port, protocol) {
 
 IpfsClient.prototype.add = async function (data, options) {
     try {
-        return await asyncIterableToArray(this.ipfs.add(data, options));
+        return await this.ipfs.add(data, options);
     }
     catch (err) {
         handleError('add', err);
@@ -183,9 +183,9 @@ IpfsClient.prototype.pinRm = async function (hash, options) {
     }
 };
 
-IpfsClient.prototype.pinLs = async function (hash, options) {
+IpfsClient.prototype.pinLs = async function (options) {
     try {
-        return await asyncIterableToArray(this.ipfs.pin.ls(hash, options));
+        return await asyncIterableToArray(this.ipfs.pin.ls(options));
     }
     catch (err) {
         handleError('pinLs', err);

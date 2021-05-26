@@ -35,11 +35,10 @@ describe('IPFS Client', function (done) {
         const result = await ipfsClient.add(tstMsg1.data);
 
         //console.debug('>>>>>> ipfsClient.add() result:', result);
-        expect(result).to.be.a('array').that.has.lengthOf(1);
-        expect(result[0]).to.be.a('object').that.include.keys('path', 'cid', 'size');
-        expect(result[0].cid).to.be.an.instanceOf(CID);
+        expect(result).to.be.a('object').that.include.keys('path', 'cid', 'size');
+        expect(result.cid).to.be.an.instanceOf(CID);
         // Save returned CID
-        tstMsg1.cid = result[0].cid;
+        tstMsg1.cid = result.cid;
     });
 
     it('should successfully retrieve the saved content', async function () {
@@ -166,12 +165,11 @@ describe('IPFS Client', function (done) {
         const result = await ipfsClient.pinAdd(tstMsg1.cid.toString());
 
         //console.debug('>>>>>> ipfsClient.pinAdd() result:', result);
-        expect(result).to.be.a('array').that.has.lengthOf(1);
-        expect(result[0]).to.be.a('object').that.has.keys('cid');
+        expect(result).to.deep.equal(tstMsg1.cid);
     });
 
     it('should successfully list the pinned content', async function () {
-        const result = await ipfsClient.pinLs(tstMsg1.cid);
+        const result = await ipfsClient.pinLs({paths: tstMsg1.cid});
 
         //console.debug('>>>>>> ipfsClient.pinLs() result:', result);
         expect(result).to.be.a('array').that.has.lengthOf(1);
@@ -205,7 +203,7 @@ describe('IPFS Client', function (done) {
     });
 
     it('should successfully list second pinned content', async function () {
-        const result = await ipfsClient.pinLs(tstMsg2.cid);
+        const result = await ipfsClient.pinLs({paths: tstMsg2.cid});
 
         //console.debug('>>>>>> ipfsClient.pinLs() result (2):', result);
         expect(result).to.be.a('array').that.has.lengthOf(1);
@@ -213,11 +211,10 @@ describe('IPFS Client', function (done) {
         expect(result[0].cid.toString()).to.equal(tstMsg2.cid.toString());
     });
 
-    it('should successfully removed second pinned content', async function () {
+    it('should successfully remove second pinned content', async function () {
         const result = await ipfsClient.pinRm(tstMsg2.cid.toString());
 
         //console.debug('>>>>>> ipfsClient.pinRm() result:', result);
-        expect(result).to.be.a('array').that.has.lengthOf(1);
-        expect(result[0]).to.be.a('object').that.has.keys('cid');
+        expect(result).to.deep.equal(tstMsg2.cid);
     });
 });
