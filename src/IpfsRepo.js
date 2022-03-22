@@ -377,7 +377,7 @@ async function initRootCid() {
         //  Define new root
         CtnOCSvr.logger.WARN('Repository root directory (/root) not found in IPFS node, and no root CID is currently saved to CNS. Creating a new (empty) root directory.');
         await this.ipfsClient.filesMkdir(cfgSettings.rootDir);
-        this.rootCid = this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).cid.toString();
+        this.rootCid = await this.ipfsClient.filesStat(cfgSettings.rootDir, {hash: true}).cid.toString();
     }
 }
 
