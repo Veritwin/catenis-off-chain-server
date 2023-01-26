@@ -70,7 +70,7 @@ The requests to the Catenis Off-Chain Server REST API should be authenticated us
  scheme.
 
 Each Catenis node is assigned an SSH RSA key pair for signing the HTTP requests. For more information about assigning
- an SSH RSA key pair to Catenis nodes, please refer to [Catenis Name Server's readme file](https://bitbucket.org/blockchainofthings/catenis-name-server/src/master/README.md).
+ an SSH RSA key pair to Catenis nodes, please refer to [Catenis Name Server's readme file](https://github.com/blockchainofthings/catenis-name-server/blob/master/README.md).
 
 ### Save off-chain message envelope
 
