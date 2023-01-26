@@ -51,6 +51,6 @@
     "ws": "^7.4.6"
   },
   "repository": {
-    "directory": "git@bitbucket.org:blockchainofthings/catenis-off-chain-server.git"
+    "directory": "git@github.com:blockchainofthings/catenis-off-chain-server.git"
   }
 }
