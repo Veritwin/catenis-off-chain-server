@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.3] - 2023-01-26
+
+### Changes
+- Update license, copyright and source code repository information.
+
+### Fixes
+- Fix issue creating a new repository root directory.
+
 ## [1.1.2] - 2021-05-26
 
 ### Changes
