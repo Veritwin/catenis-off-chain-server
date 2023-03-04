@@ -1,0 +1,37 @@
+// Config file with specific settings for sandbox environment
+{
+  // Parameters pertaining to Logger module
+  logger: {
+    console: {
+      logLevel: "TRACE" // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+    },
+    email: {
+      active: true,
+      logLevel: "WARN", // Valid options: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+      toAddresses: "claudio@hiades.com.br, andre@veritwin.com", // Can be set to a comma separated list of e-mail addresses
+      fromAddress: "Catenis Off-Chain Server [Sandbox Veritwin] <noreply@veritwin.com>"
+    }
+  },
+  // Parameters pertaining to e-mail server configuration
+  "email": {
+    "smtpHost": "email-smtp.us-east-1.amazonaws.com",
+    "secureProto": "tls",  // (optional, can be set to null) Secure protocol that should be used with SMTP server. Valid options: 'ssl' or 'tls',
+    "smtpPort": null,  // (optional, can be set to null) To be set only if different than default (depending on secureProto): none/null (25), ssl (465), tls (587)
+    "username": "???????",  // (optional, can be set to null) To be set only if required by SMTP host
+    "password": "???????"   // (optional, can be set to null) To be set only if required by SMTP host
+  },
+  // Parameters pertaining to Application module
+  application: {
+    environment: "sandbox",
+    domain: "veritwin.com"
+  },
+  // Parameters pertaining to CtnNode module
+  ctnNode: {
+    pubKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDBGShT3CVRP6/Gn2da9zeW818JMfYWYbTQv+PnXRAu9VTb0lCMGqBkHUjfDw8Y1carpODbliARpLBrj+AI0jfxqDYkWMmhVU/tasMQiLEV/o45Hgt5bdzQHWcx0S4+5QqdU5HCNZ39c3NClpAV3tokLG/GtiglXddtRz5neS+71n2FTZqogEQt8eIIfEIOzRljI++OF1jIiFAcIaSTk/x3W9fdargBZi99VGfi7zanjOK6dCPwUkxe6WGCN8dQl85DGve8y99PDhHQhbHrb7yMPo3s1fiLjnQFbu8fT2p5MnKEqEZTD0gzRMbboHdapoBb8/+F0SNf3qYVRVI389o/"
+  },
+  // Parameter pertaining to IpfsClient module
+  ipfsClient: {
+    apiHost: "localhost",
+    apiPort: 9095  // Connects to IPFS Cluster node (via its HTTP proxy) instead of to IPFS node (port 5001) directly
+  }
+}
